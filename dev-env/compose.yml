@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:16
+    container_name: indipda-postgres
+    environment:
+      POSTGRES_USER: indico
+      POSTGRES_PASSWORD: indico
+      POSTGRES_DB: indico
+    ports:
+      - "${INDIPDA_PG_PORT:-15432}:5432"
+    volumes:
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - indipda-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indico -d indico"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: docker.io/library/redis:7
+    container_name: indipda-redis
+    ports:
+      - "${INDIPDA_REDIS_PORT:-16379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  indipda-pgdata:

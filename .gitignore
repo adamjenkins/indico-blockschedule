@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Compiled translations
+*.mo
+
+# Node / frontend build output
+node_modules/
+indico_blockschedule/static/dist/
+webpack-build-config.json
+url_map.json
+
+# Editor/OS noise
+.DS_Store
+*.swp

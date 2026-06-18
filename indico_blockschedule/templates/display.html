@@ -1,0 +1,13 @@
+{% extends 'events/display/conference/base.html' %}
+
+{% block title -%}
+    {%- trans %}Block Schedule{% endtrans -%}
+{%- endblock %}
+
+{% block content -%}
+    <ind-blockschedule-display
+        event-id="{{ event.id }}"
+        timezone="{{ event.display_tzinfo.zone }}"
+        logged-in="{{ session.user is not none | tojson }}"
+    ></ind-blockschedule-display>
+{%- endblock %}

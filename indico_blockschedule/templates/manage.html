@@ -1,0 +1,12 @@
+{% extends 'events/management/base.html' %}
+
+{% block title -%}
+    {%- trans %}Block Schedule{% endtrans -%}
+{%- endblock %}
+
+{% block content -%}
+    <ind-blockschedule-manage
+        event-id="{{ event.id }}"
+        timezone="{{ event.tzinfo.zone }}"
+    ></ind-blockschedule-manage>
+{%- endblock %}

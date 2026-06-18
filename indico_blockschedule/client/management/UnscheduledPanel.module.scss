@@ -1,0 +1,23 @@
+// This file is part of the Block Schedule plugin for Indico.
+// Copyright (C) 2026 Adam Jenkins
+//
+// The Block Schedule plugin is free software; you can redistribute
+// it and/or modify it under the terms of the MIT License;
+// see the LICENSE file for more details.
+
+.panel {
+  flex: 0 0 220px;
+  padding: 1em;
+  background-color: #f8f8f8;
+  border-right: 1px solid #ddd;
+  overflow-y: auto;
+
+  > :global(.contribution-block) {
+    margin-bottom: 0.5em;
+  }
+}
+
+.empty {
+  color: #888;
+  font-size: 0.9em;
+}

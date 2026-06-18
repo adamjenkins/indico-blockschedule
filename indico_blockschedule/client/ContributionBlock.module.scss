@@ -1,0 +1,54 @@
+// This file is part of the Block Schedule plugin for Indico.
+// Copyright (C) 2026 Adam Jenkins
+//
+// The Block Schedule plugin is free software; you can redistribute
+// it and/or modify it under the terms of the MIT License;
+// see the LICENSE file for more details.
+
+.contribution-block {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  padding: 0.4em 1.4em 1.1em 0.6em;
+  background-color: #eef6fc;
+  border: 1px solid #b9d9ed;
+  border-radius: 3px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  cursor: grab;
+
+  &.dimmed {
+    opacity: 0.35;
+  }
+
+  &.starred {
+    border-color: #f0ad4e;
+    background-color: #fdf3e3;
+  }
+}
+
+.title {
+  font-weight: bold;
+  font-size: 0.9em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.people {
+  font-size: 0.8em;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.time-range {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 0.7em;
+  color: #777;
+  white-space: nowrap;
+}

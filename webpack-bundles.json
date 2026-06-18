@@ -1,0 +1,6 @@
+{
+  "entry": {
+    "management": "./management/index.js",
+    "display": "./display/index.js"
+  }
+}
