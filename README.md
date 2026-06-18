@@ -105,3 +105,25 @@ Needs Postgres reachable via `INDICO_TEST_DATABASE_URI` and a
 `.prompts/core/ci-validation.md` in the wider `indipda` toolset this
 plugin was scaffolded from for the full checklist (ruff/isort/unbehead/
 eslint/stylelint) if you have it checked out alongside this repo.
+
+### Troubleshooting
+
+**The Block Schedule page loads but shows nothing.** This is almost
+always a frontend asset problem, not a backend one — check your browser's
+JS console first. The two most likely causes if you're developing against
+this plugin (not just installing it):
+- The asset build didn't actually run, or ran against a stale install —
+  re-run step 6 of [Installation](#installation) and confirm
+  `indico_blockschedule/static/dist/manifest.json` was just regenerated.
+- If you've added a new client-side import, webpack may have split a
+  shared `common.js`/`common.css` chunk out of the `management`/`display`
+  bundles (check `manifest.json` for a `common.js` key) — both `views.py`
+  WP classes already include it automatically when present, so a missing
+  *new* error after adding an import most likely means that import itself
+  is the problem: anything from `indico/react/*` or
+  `indico/web/client/js/*` that ISN'T listed in `plugin.webpack.config.mjs`'s
+  `externals` gets fully re-bundled, which can re-execute code (e.g.
+  custom element registrations) that core's own page scripts already ran,
+  crashing with errors like `Uncaught NotSupportedError: ... has already
+  been used` and aborting before anything renders. Prefer reimplementing
+  the small piece you need over importing one of those barrels.
