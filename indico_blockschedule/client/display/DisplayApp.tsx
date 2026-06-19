@@ -150,7 +150,7 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
                     contribution={contribution}
                     eventId={eventId}
                     href={contribution.url}
-                    dimmed={highlightStarred && !contribution.is_starred}
+                    highlightStarred={highlightStarred}
                     showFavorite={loggedIn}
                     style={{height: '100%'}}
                   />

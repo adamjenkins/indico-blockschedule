@@ -18,11 +18,11 @@ import './FavoriteStar.module.scss';
 interface FavoriteStarProps {
   contributionId: number;
   eventId: number;
-  initialStarred: boolean;
+  starred: boolean;
+  onChange: (starred: boolean) => void;
 }
 
-export function FavoriteStar({contributionId, eventId, initialStarred}: FavoriteStarProps) {
-  const [starred, setStarred] = useState(initialStarred);
+export function FavoriteStar({contributionId, eventId, starred, onChange}: FavoriteStarProps) {
   const [saving, setSaving] = useState(false);
   const url = favoriteContributionURL({contrib_id: contributionId, event_id: eventId});
 
@@ -34,7 +34,7 @@ export function FavoriteStar({contributionId, eventId, initialStarred}: Favorite
     }
     const newValue = !starred;
     setSaving(true);
-    setStarred(newValue);
+    onChange(newValue);
     try {
       if (newValue) {
         await indicoAxios.put(url);
@@ -42,7 +42,7 @@ export function FavoriteStar({contributionId, eventId, initialStarred}: Favorite
         await indicoAxios.delete(url);
       }
     } catch (error) {
-      setStarred(!newValue);
+      onChange(!newValue);
       handleAxiosError(error);
     } finally {
       setSaving(false);

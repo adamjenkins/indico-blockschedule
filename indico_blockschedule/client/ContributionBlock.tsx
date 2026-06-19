@@ -5,7 +5,7 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 
 import {FavoriteStar} from './FavoriteStar';
 import {minutesToLabel} from './gridTime';
@@ -18,7 +18,8 @@ interface ContributionBlockProps {
   eventId: number;
   draggable?: boolean;
   href?: string;
-  dimmed?: boolean;
+  /** Dim this block unless it's starred (e.g. the display page's "highlight my timetable" toggle). */
+  highlightStarred?: boolean;
   showFavorite?: boolean;
   onDragStart?: (event: React.DragEvent, contribution: BSContribution) => void;
   style?: React.CSSProperties;
@@ -29,11 +30,14 @@ export function ContributionBlock({
   eventId,
   draggable,
   href,
-  dimmed,
+  highlightStarred,
   showFavorite = true,
   onDragStart,
   style,
 }: ContributionBlockProps) {
+  const [starred, setStarred] = useState(contribution.is_starred);
+  useEffect(() => setStarred(contribution.is_starred), [contribution.is_starred]);
+
   const timeRange =
     contribution.start_minutes !== null
       ? `${minutesToLabel(contribution.start_minutes)}–${minutesToLabel(
@@ -47,7 +51,8 @@ export function ContributionBlock({
         <FavoriteStar
           contributionId={contribution.id}
           eventId={eventId}
-          initialStarred={contribution.is_starred}
+          starred={starred}
+          onChange={setStarred}
         />
       )}
       <div styleName="title">{contribution.title}</div>
@@ -56,7 +61,8 @@ export function ContributionBlock({
     </>
   );
 
-  const className = ['contribution-block', dimmed ? 'dimmed' : '', contribution.is_starred ? 'starred' : '']
+  const dimmed = highlightStarred && !starred;
+  const className = ['contribution-block', dimmed ? 'dimmed' : '', starred ? 'starred' : '']
     .filter(Boolean)
     .join(' ');
 

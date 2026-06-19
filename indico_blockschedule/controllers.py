@@ -66,7 +66,28 @@ def _combine_local(event, day, minutes):
     return event.tzinfo.localize(naive).astimezone(UTC)
 
 
-def _grid_payload(event, day, user=None):
+def _minutes_to_hhmm(minutes):
+    minutes = max(0, min(minutes, 24 * 60))
+    return f'{minutes // 60:02d}:{minutes % 60:02d}'
+
+
+def _day_bounds(scheduled, spanning_blocks, slot_minutes, settings):
+    """The display grid's time range: from the first item's start to the last item's end,
+    rounded out to whole slots, for the busy day shown — falling back to the configured
+    default range (used unconditionally for the management grid) when nothing is scheduled.
+    """
+    starts = [c['start_minutes'] for c in scheduled if c['start_minutes'] is not None]
+    ends = [c['start_minutes'] + (c['duration_minutes'] or 0) for c in scheduled if c['start_minutes'] is not None]
+    starts += [b['start_minutes'] for b in spanning_blocks]
+    ends += [b['start_minutes'] + b['duration_minutes'] for b in spanning_blocks]
+    if not starts:
+        return settings['day_start_time'], settings['day_end_time']
+    start = (min(starts) // slot_minutes) * slot_minutes
+    end = -(-max(ends) // slot_minutes) * slot_minutes  # round up
+    return _minutes_to_hhmm(start), _minutes_to_hhmm(end)
+
+
+def _grid_payload(event, day, user=None, *, full_day=False):
     from indico_blockschedule.plugin import BlockschedulePlugin
     columns = (BlockScheduleColumn.query
               .with_parent(event)
@@ -78,6 +99,13 @@ def _grid_payload(event, day, user=None):
     unscheduled = get_unscheduled_contributions(event)
     settings = BlockschedulePlugin.event_settings.get_all(event)
     spanning_blocks = get_spanning_blocks(event, day)
+    serialized_scheduled = [serialize_contribution(c, user) for c in scheduled]
+    serialized_spanning_blocks = [serialize_spanning_block(e) for e in spanning_blocks]
+    if full_day:
+        day_start_time, day_end_time = '00:00', '24:00'
+    else:
+        day_start_time, day_end_time = _day_bounds(serialized_scheduled, serialized_spanning_blocks,
+                                                    settings['slot_minutes'], settings)
     return {
         'day': day.isoformat(),
         'event_days': [d.isoformat() for d in event.iter_days()],
@@ -85,12 +113,12 @@ def _grid_payload(event, day, user=None):
         'roombooking_enabled': config.ENABLE_ROOMBOOKING,
         'rooms': ([{'id': r.id, 'full_name': r.full_name} for r in Room.query.filter_by(is_deleted=False)]
                  if config.ENABLE_ROOMBOOKING else []),
-        'scheduled_contributions': [serialize_contribution(c, user) for c in scheduled],
+        'scheduled_contributions': serialized_scheduled,
         'unscheduled_contributions': [serialize_contribution(c, user) for c in unscheduled],
-        'spanning_blocks': [serialize_spanning_block(e) for e in spanning_blocks],
+        'spanning_blocks': serialized_spanning_blocks,
         'slot_minutes': settings['slot_minutes'],
-        'day_start_time': settings['day_start_time'],
-        'day_end_time': settings['day_end_time'],
+        'day_start_time': day_start_time,
+        'day_end_time': day_end_time,
         'gap_minutes': settings['gap_minutes'],
     }
 
@@ -107,7 +135,7 @@ class RHManageBlockSchedule(RHBlockScheduleManageBase):
 class RHManageGridData(RHBlockScheduleManageBase):
     def _process(self):
         day = _event_day(self.event, request.args.get('day'))
-        return jsonify(_grid_payload(self.event, day, session.user))
+        return jsonify(_grid_payload(self.event, day, session.user, full_day=True))
 
 
 class RHColumnCreate(RHBlockScheduleManageBase):
