@@ -11,6 +11,7 @@ export interface BSColumn {
   position: number;
   label: string;
   title: string;
+  color: string | null;
 }
 
 export interface BSRoom {
@@ -30,6 +31,14 @@ export interface BSContribution {
   is_starred: boolean;
 }
 
+export interface BSSpanningBlock {
+  id: number;
+  title: string;
+  start_minutes: number;
+  duration_minutes: number;
+  color: string | null;
+}
+
 export interface BSGridData {
   day: string;
   event_days: string[];
@@ -38,7 +47,9 @@ export interface BSGridData {
   rooms: BSRoom[];
   scheduled_contributions: BSContribution[];
   unscheduled_contributions: BSContribution[];
+  spanning_blocks: BSSpanningBlock[];
   slot_minutes: number;
   day_start_time: string;
   day_end_time: string;
+  gap_minutes: number;
 }

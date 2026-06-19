@@ -35,6 +35,7 @@ from datetime import timedelta
 
 from indico.web.flask.app import make_app
 
+
 app = make_app()
 with app.test_request_context():
     from flask import session as flask_session

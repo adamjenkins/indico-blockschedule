@@ -27,6 +27,7 @@ class BlockschedulePlugin(IndicoPlugin):
         'slot_minutes': 30,
         'day_start_time': '09:00',
         'day_end_time': '18:00',
+        'gap_minutes': 0,
     }
 
     def init(self):

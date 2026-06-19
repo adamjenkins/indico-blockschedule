@@ -30,11 +30,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.4em;
   padding: 0.4em;
   background-color: #f0f0f0;
   font-weight: bold;
   cursor: text;
   border-radius: 3px;
+}
+
+.color-input {
+  width: 1.4em;
+  height: 1.4em;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .delete-icon {
@@ -47,6 +58,7 @@
 }
 
 .body-row {
+  position: relative;
   display: flex;
   gap: 2px;
 }
@@ -105,4 +117,32 @@
   gap: 0.5em;
   align-items: center;
   margin-top: 1em;
+}
+
+.add-spanning-block {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  margin-top: 0.5em;
+}
+
+.spanning-block {
+  position: absolute;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  box-sizing: border-box;
+  padding: 0.3em 0.6em;
+  border: 1px solid rgb(0 0 0 / 15%);
+  border-radius: 3px;
+  font-weight: bold;
+
+  span {
+    flex: 1;
+    cursor: text;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }

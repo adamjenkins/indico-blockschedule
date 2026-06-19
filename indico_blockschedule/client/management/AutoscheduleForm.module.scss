@@ -5,37 +5,24 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-.manage-app {
+.form {
   display: flex;
   flex-direction: column;
-  height: 100%;
-
-  &:fullscreen {
-    background: white;
-    padding: 1em;
-  }
+  gap: 0.6em;
+  min-width: 280px;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 1em;
-  margin: 1em;
-}
-
-.layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
-
-.gap-setting {
+.row {
   display: flex;
   align-items: center;
   gap: 0.5em;
-  font-size: 0.9em;
 
-  input {
-    width: 4em;
+  label {
+    flex: 0 0 3em;
   }
+}
+
+.result {
+  margin: 0.4em 0 0;
+  font-size: 0.9em;
 }

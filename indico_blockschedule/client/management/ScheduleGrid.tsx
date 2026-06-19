@@ -10,33 +10,98 @@ import {Button, Dropdown, Icon, Input} from 'semantic-ui-react';
 
 import {Translate} from 'indico/react/i18n';
 
+import {paleBackground, readableTextColor} from '../colors';
 import {ContributionBlock} from '../ContributionBlock';
 import {buildSlots, durationToPx, GUTTER_PX, minutesToLabel, minutesToOffsetPx, SLOT_PX} from '../gridTime';
 import {BSGridData} from '../types';
 
 import './ScheduleGrid.module.scss';
 
+const COLUMN_DRAG_TYPE = 'application/x-bs-column';
+const SPANNING_DRAG_TYPE = 'application/x-bs-spanning';
+
+interface UpdateColumnData {
+  label?: string;
+  color?: string | null;
+}
+
+interface UpdateSpanningBlockData {
+  title?: string;
+  start_minutes?: number;
+  duration_minutes?: number;
+  color?: string;
+}
+
 interface ScheduleGridProps {
   eventId: number;
   gridData: BSGridData;
   onSchedule: (contributionId: number, columnId: number, startMinutes: number) => void;
   onUnschedule: (contributionId: number) => void;
-  onCreateColumn: (roomId: number | null, label: string) => void;
-  onUpdateColumnLabel: (columnId: number, label: string) => void;
+  onCreateColumn: (roomId: number | null, label: string, color: string | null) => void;
+  onUpdateColumn: (columnId: number, data: UpdateColumnData) => void;
   onDeleteColumn: (columnId: number) => void;
+  onReorderColumns: (columnIds: number[]) => void;
+  onCreateSpanningBlock: (
+    title: string,
+    startMinutes: number,
+    durationMinutes: number,
+    color: string | null
+  ) => void;
+  onUpdateSpanningBlock: (entryId: number, data: UpdateSpanningBlockData) => void;
+  onDeleteSpanningBlock: (entryId: number) => void;
+}
+
+/** Candidate start minute closest to `rawStart`, snapping to a neighbor's edge (± the gap) if within one slot. */
+function snapStart(
+  rawStart: number,
+  durationMinutes: number,
+  columnId: number,
+  contributionId: number,
+  gridData: BSGridData
+): number {
+  if (gridData.gap_minutes <= 0) {
+    return rawStart;
+  }
+  const neighbors = gridData.scheduled_contributions.filter(
+    c => c.column_id === columnId && c.id !== contributionId && c.start_minutes !== null
+  );
+  let best = rawStart;
+  let bestDist = gridData.slot_minutes;
+  for (const neighbor of neighbors) {
+    const neighborStart = neighbor.start_minutes as number;
+    const candidates = [
+      neighborStart + (neighbor.duration_minutes ?? 0) + gridData.gap_minutes,
+      neighborStart - gridData.gap_minutes - durationMinutes,
+    ];
+    for (const candidate of candidates) {
+      const dist = Math.abs(candidate - rawStart);
+      if (dist <= bestDist) {
+        bestDist = dist;
+        best = candidate;
+      }
+    }
+  }
+  return Math.max(0, best);
 }
 
 function ColumnHeader({
   column,
-  onUpdateLabel,
+  onUpdate,
   onDelete,
+  onDragStart,
+  onDropColumn,
 }: {
   column: BSGridData['columns'][number];
-  onUpdateLabel: (label: string) => void;
+  onUpdate: (data: UpdateColumnData) => void;
   onDelete: () => void;
+  onDragStart: (event: React.DragEvent) => void;
+  onDropColumn: (event: React.DragEvent) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(column.title);
+
+  const backgroundColor = column.color ? `#${column.color}` : undefined;
+  const color = column.color ? readableTextColor(`#${column.color}`) : undefined;
 
   if (editing) {
     return (
@@ -48,7 +113,7 @@ function ColumnHeader({
         onBlur={() => {
           setEditing(false);
           if (value.trim() && value !== column.title) {
-            onUpdateLabel(value.trim());
+            onUpdate({label: value.trim()});
           }
         }}
         onKeyDown={(e: React.KeyboardEvent) => {
@@ -61,8 +126,23 @@ function ColumnHeader({
   }
 
   return (
-    <div styleName="column-header" onClick={() => setEditing(true)}>
+    <div
+      styleName="column-header"
+      style={{backgroundColor, color}}
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={e => e.preventDefault()}
+      onDrop={onDropColumn}
+      onClick={() => setEditing(true)}
+    >
       <span>{column.title}</span>
+      <input
+        type="color"
+        styleName="color-input"
+        value={column.color ? `#${column.color}` : '#cccccc'}
+        onClick={e => e.stopPropagation()}
+        onChange={e => onUpdate({color: e.target.value.replace('#', '')})}
+      />
       <Icon name="close" size="small" styleName="delete-icon" onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         onDelete();
@@ -78,18 +158,20 @@ function AddColumnForm({
 }: {
   roombookingEnabled: boolean;
   rooms: BSGridData['rooms'];
-  onCreateColumn: (roomId: number | null, label: string) => void;
+  onCreateColumn: (roomId: number | null, label: string, color: string | null) => void;
 }) {
   const [roomId, setRoomId] = useState<number | null>(null);
   const [label, setLabel] = useState('');
+  const [color, setColor] = useState<string | null>(null);
 
   const submit = () => {
     if (!label.trim()) {
       return;
     }
-    onCreateColumn(roomId, label.trim());
+    onCreateColumn(roomId, label.trim(), color);
     setRoomId(null);
     setLabel('');
+    setColor(null);
   };
 
   return (
@@ -121,9 +203,129 @@ function AddColumnForm({
           }
         }}
       />
+      <input
+        type="color"
+        value={color ?? '#cccccc'}
+        onChange={e => setColor(e.target.value.replace('#', ''))}
+      />
       <Button primary disabled={!label.trim()} onClick={submit}>
         <Translate>Add column</Translate>
       </Button>
+    </div>
+  );
+}
+
+function AddSpanningBlockForm({
+  slots,
+  onCreateSpanningBlock,
+}: {
+  slots: number[];
+  onCreateSpanningBlock: (title: string, startMinutes: number, durationMinutes: number, color: string | null) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [startMinutes, setStartMinutes] = useState(slots[0] ?? 0);
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [color, setColor] = useState('e0e0e0');
+
+  const submit = () => {
+    if (!title.trim() || durationMinutes <= 0) {
+      return;
+    }
+    onCreateSpanningBlock(title.trim(), startMinutes, durationMinutes, color);
+    setTitle('');
+  };
+
+  return (
+    <div styleName="add-spanning-block">
+      <Input
+        placeholder={Translate.string('Spanning block title (e.g. Lunch break)')}
+        value={title}
+        onChange={(_e, {value}) => setTitle(value)}
+      />
+      <select value={startMinutes} onChange={e => setStartMinutes(Number(e.target.value))}>
+        {slots.map(slotMinutes => (
+          <option key={slotMinutes} value={slotMinutes}>
+            {minutesToLabel(slotMinutes)}
+          </option>
+        ))}
+      </select>
+      <Input
+        type="number"
+        min={5}
+        step={5}
+        value={durationMinutes}
+        onChange={(_e, {value}) => setDurationMinutes(Number(value))}
+        label={Translate.string('min')}
+        labelPosition="right"
+      />
+      <input type="color" value={`#${color}`} onChange={e => setColor(e.target.value.replace('#', ''))} />
+      <Button primary disabled={!title.trim()} onClick={submit}>
+        <Translate>Add spanning block</Translate>
+      </Button>
+    </div>
+  );
+}
+
+function SpanningBlockBar({
+  block,
+  gridData,
+  onUpdate,
+  onDelete,
+  onDragStart,
+}: {
+  block: BSGridData['spanning_blocks'][number];
+  gridData: BSGridData;
+  onUpdate: (data: UpdateSpanningBlockData) => void;
+  onDelete: () => void;
+  onDragStart: (event: React.DragEvent) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(block.title);
+  const backgroundColor = block.color ? `#${block.color}` : undefined;
+  const color = block.color ? readableTextColor(`#${block.color}`) : undefined;
+
+  return (
+    <div
+      styleName="spanning-block"
+      draggable={!editing}
+      onDragStart={onDragStart}
+      style={{
+        top: minutesToOffsetPx(block.start_minutes, gridData.day_start_time, gridData.slot_minutes),
+        height: durationToPx(block.duration_minutes, gridData.slot_minutes),
+        left: GUTTER_PX,
+        backgroundColor,
+        color,
+      }}
+    >
+      {editing ? (
+        <Input
+          size="mini"
+          autoFocus
+          value={value}
+          onChange={(_e, {value: v}) => setValue(v)}
+          onBlur={() => {
+            setEditing(false);
+            if (value.trim() && value !== block.title) {
+              onUpdate({title: value.trim()});
+            }
+          }}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === 'Enter') {
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
+        />
+      ) : (
+        <span onClick={() => setEditing(true)}>{block.title}</span>
+      )}
+      <input
+        type="color"
+        styleName="color-input"
+        value={block.color ? `#${block.color}` : '#e0e0e0'}
+        onClick={e => e.stopPropagation()}
+        onChange={e => onUpdate({color: e.target.value.replace('#', '')})}
+      />
+      <Icon name="close" size="small" styleName="unschedule-icon" onClick={onDelete} />
     </div>
   );
 }
@@ -134,18 +336,54 @@ export function ScheduleGrid({
   onSchedule,
   onUnschedule,
   onCreateColumn,
-  onUpdateColumnLabel,
+  onUpdateColumn,
   onDeleteColumn,
+  onReorderColumns,
+  onCreateSpanningBlock,
+  onUpdateSpanningBlock,
+  onDeleteSpanningBlock,
 }: ScheduleGridProps) {
   const slots = buildSlots(gridData.day_start_time, gridData.day_end_time, gridData.slot_minutes);
   const bodyHeight = slots.length * SLOT_PX;
+  const contributionsById = new Map(
+    [...gridData.scheduled_contributions, ...gridData.unscheduled_contributions].map(c => [c.id, c])
+  );
 
-  const onDrop = (event: React.DragEvent, columnId: number, slotMinutes: number) => {
+  const onCellDrop = (event: React.DragEvent, columnId: number, slotMinutes: number) => {
     event.preventDefault();
-    const contributionId = Number(event.dataTransfer.getData('text/plain'));
-    if (contributionId) {
-      onSchedule(contributionId, columnId, slotMinutes);
+    if (event.dataTransfer.types.includes(SPANNING_DRAG_TYPE)) {
+      const entryId = Number(event.dataTransfer.getData(SPANNING_DRAG_TYPE));
+      if (entryId) {
+        onUpdateSpanningBlock(entryId, {start_minutes: slotMinutes});
+      }
+      return;
     }
+    const contributionId = Number(event.dataTransfer.getData('text/plain'));
+    if (!contributionId) {
+      return;
+    }
+    const contribution = contributionsById.get(contributionId);
+    const startMinutes = contribution
+      ? snapStart(slotMinutes, contribution.duration_minutes ?? 0, columnId, contributionId, gridData)
+      : slotMinutes;
+    onSchedule(contributionId, columnId, startMinutes);
+  };
+
+  const onHeaderDrop = (event: React.DragEvent, targetColumnId: number) => {
+    event.preventDefault();
+    if (!event.dataTransfer.types.includes(COLUMN_DRAG_TYPE)) {
+      return;
+    }
+    const draggedId = Number(event.dataTransfer.getData(COLUMN_DRAG_TYPE));
+    if (!draggedId || draggedId === targetColumnId) {
+      return;
+    }
+    const order = gridData.columns.map(c => c.id);
+    const fromIndex = order.indexOf(draggedId);
+    const toIndex = order.indexOf(targetColumnId);
+    order.splice(fromIndex, 1);
+    order.splice(toIndex, 0, draggedId);
+    onReorderColumns(order);
   };
 
   return (
@@ -156,8 +394,10 @@ export function ScheduleGrid({
           <div key={column.id} styleName="header-cell">
             <ColumnHeader
               column={column}
-              onUpdateLabel={label => onUpdateColumnLabel(column.id, label)}
+              onUpdate={data => onUpdateColumn(column.id, data)}
               onDelete={() => onDeleteColumn(column.id)}
+              onDragStart={e => e.dataTransfer.setData(COLUMN_DRAG_TYPE, String(column.id))}
+              onDropColumn={e => onHeaderDrop(e, column.id)}
             />
           </div>
         ))}
@@ -173,14 +413,18 @@ export function ScheduleGrid({
         </div>
 
         {gridData.columns.map(column => (
-          <div key={column.id} styleName="column-track" style={{height: bodyHeight}}>
+          <div
+            key={column.id}
+            styleName="column-track"
+            style={{height: bodyHeight, backgroundColor: column.color ? paleBackground(`#${column.color}`) : undefined}}
+          >
             {slots.map(slotMinutes => (
               <div
                 key={slotMinutes}
                 styleName="cell"
                 style={{height: SLOT_PX}}
                 onDragOver={e => e.preventDefault()}
-                onDrop={e => onDrop(e, column.id, slotMinutes)}
+                onDrop={e => onCellDrop(e, column.id, slotMinutes)}
               />
             ))}
             {gridData.scheduled_contributions
@@ -212,6 +456,17 @@ export function ScheduleGrid({
               ))}
           </div>
         ))}
+
+        {gridData.spanning_blocks.map(block => (
+          <SpanningBlockBar
+            key={block.id}
+            block={block}
+            gridData={gridData}
+            onUpdate={data => onUpdateSpanningBlock(block.id, data)}
+            onDelete={() => onDeleteSpanningBlock(block.id)}
+            onDragStart={e => e.dataTransfer.setData(SPANNING_DRAG_TYPE, String(block.id))}
+          />
+        ))}
       </div>
 
       <AddColumnForm
@@ -219,6 +474,7 @@ export function ScheduleGrid({
         rooms={gridData.rooms}
         onCreateColumn={onCreateColumn}
       />
+      <AddSpanningBlockForm slots={slots} onCreateSpanningBlock={onCreateSpanningBlock} />
     </div>
   );
 }

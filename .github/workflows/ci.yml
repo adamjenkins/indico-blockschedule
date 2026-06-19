@@ -131,6 +131,28 @@ jobs:
         if: success() || failure()
         run: ruff check --output-format github .
 
+      # `pip install`ing Indico (even from a git URL) only puts the `indico` Python
+      # package itself on disk -- `.eslintrc.js` needs a real checkout (.eslintrc.yml,
+      # babel.config.js, node_modules) to build its config from, which is what the
+      # `.indico_source` override file (read by `.eslintrc.js`) is for.
+      - name: Checkout Indico source
+        if: success() || failure()
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: indico/indico
+          ref: ${{ env.INDICO_VERSION }}
+          path: indico-src
+          persist-credentials: false
+
+      - name: Install Indico node dependencies
+        if: success() || failure()
+        run: npm ci
+        working-directory: indico-src
+
+      - name: Point eslint at the Indico checkout
+        if: success() || failure()
+        run: echo "$GITHUB_WORKSPACE/indico-src" > .indico_source
+
       - name: Run eslint
         if: success() || failure()
         run: npx eslint .
@@ -247,11 +269,22 @@ jobs:
       - name: Install plugin
         run: uv pip install -e .
 
-      - name: Locate Indico checkout
-        run: |
-          INDICO_DIR=$(python -c 'from flask.helpers import get_root_path; print(get_root_path("indico"))')
-          echo "INDICO_SRC=$(dirname "$INDICO_DIR")" >> $GITHUB_ENV
+      # `build-assets.py`, `webpack/base.mjs`, etc. are top-level files in the Indico
+      # repo, not part of the `indico` Python package -- `pip install`ing it (even
+      # from a git URL, as the `setup` job does) only gets you the package, so a real
+      # checkout is needed here too (see the `lint` job's "Checkout Indico source").
+      - name: Checkout Indico source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: indico/indico
+          ref: ${{ env.INDICO_VERSION }}
+          path: indico-src
+          persist-credentials: false
+
+      - name: Install Indico node dependencies
+        run: npm ci
+        working-directory: indico-src
 
       - name: Build webpack assets
-        run: python "$INDICO_SRC/bin/maintenance/build-assets.py" plugin "${{ github.workspace }}"
-        working-directory: ${{ env.INDICO_SRC }}
+        run: python bin/maintenance/build-assets.py plugin "$GITHUB_WORKSPACE"
+        working-directory: indico-src

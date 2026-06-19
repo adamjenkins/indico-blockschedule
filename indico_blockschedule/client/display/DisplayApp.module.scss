@@ -36,6 +36,7 @@
 }
 
 .body-row {
+  position: relative;
   display: flex;
   gap: 2px;
 }
@@ -74,4 +75,16 @@
   :global(.contribution-block) {
     height: 100%;
   }
+}
+
+.spanning-block {
+  position: absolute;
+  right: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  padding: 0.3em 0.6em;
+  border: 1px solid rgb(0 0 0 / 15%);
+  border-radius: 3px;
+  background-color: #e0e0e0;
+  font-weight: bold;
 }

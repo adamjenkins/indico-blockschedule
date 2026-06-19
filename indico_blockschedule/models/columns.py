@@ -48,6 +48,10 @@ class BlockScheduleColumn(db.Model):
         db.String,
         nullable=False
     )
+    color = db.Column(
+        db.String,
+        nullable=True
+    )
 
     event = db.relationship(
         'Event',

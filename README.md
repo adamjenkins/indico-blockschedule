@@ -21,6 +21,19 @@ down the rows, rooms run across the columns.
   contribution page, and has a toggle to highlight the viewer's starred
   contributions while dimming the rest.
 - Both the management and display grids have a fullscreen toggle.
+- Columns can be themed with a color (saturated on the header, a pale
+  tint across the column body) and reordered by dragging one column
+  header onto another.
+- "GapSnap": set a gap to leave after every contribution, and dragging a
+  contribution near a neighbor snaps it to that gap automatically.
+- An autoscheduler fills a given timespan for you: it keeps a session's
+  (or, failing that, a track's) contributions together and back-to-back
+  in the same column, avoids parallel-scheduling the same session/track
+  across different columns, places everything else wherever there's
+  room, and respects the GapSnap gap throughout.
+- Column-spanning blocks for things that apply to the whole conference
+  at once (lunch breaks, plenary sessions) — a single bar drawn across
+  every column for a given time range.
 
 Block Schedule is added alongside Indico's built-in Timetable feature, not
 a replacement for it — both stay usable, and scheduling writes into
@@ -115,15 +128,22 @@ this plugin (not just installing it):
 - The asset build didn't actually run, or ran against a stale install —
   re-run step 6 of [Installation](#installation) and confirm
   `indico_blockschedule/static/dist/manifest.json` was just regenerated.
-- If you've added a new client-side import, webpack may have split a
-  shared `common.js`/`common.css` chunk out of the `management`/`display`
-  bundles (check `manifest.json` for a `common.js` key) — both `views.py`
-  WP classes already include it automatically when present, so a missing
-  *new* error after adding an import most likely means that import itself
-  is the problem: anything from `indico/react/*` or
-  `indico/web/client/js/*` that ISN'T listed in `plugin.webpack.config.mjs`'s
-  `externals` gets fully re-bundled, which can re-execute code (e.g.
-  custom element registrations) that core's own page scripts already ran,
-  crashing with errors like `Uncaught NotSupportedError: ... has already
-  been used` and aborting before anything renders. Prefer reimplementing
-  the small piece you need over importing one of those barrels.
+- If you've added a new client-side import, double-check it against
+  `plugin.webpack.config.mjs`'s `externals`: anything from
+  `indico/react/*` or `indico/web/client/js/*` that ISN'T listed there
+  gets fully re-bundled, which can re-execute code (e.g. custom element
+  registrations) that core's own page scripts already ran, crashing with
+  errors like `Uncaught NotSupportedError: ... has already been used`
+  and aborting before anything renders. Prefer reimplementing the small
+  piece you need over importing one of those barrels.
+- This plugin's own `webpack.config.mjs` disables webpack's automatic
+  `common`-chunk splitting between the `management`/`display` bundles
+  (see the comment in that file). That's a deliberate workaround, not
+  something to "fix" — plugin builds don't get a shared runtime chunk
+  (`runtimeChunk: false` in core's `webpack/base.mjs`), so a chunk
+  shared between two entries with different runtimes can end up
+  executing under the wrong one, observed as `__webpack_require__.nmd is
+  not a function`. If you see that error, you've likely re-introduced a
+  module shared between `client/management/` and `client/display/`
+  outside of that file — keep shared code small enough that webpack
+  doesn't try to split it out, or duplicate it instead.

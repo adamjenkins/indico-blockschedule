@@ -21,6 +21,31 @@ import {BSGridData} from '../types';
 
 import './DisplayApp.module.scss';
 
+// Duplicated from '../colors' rather than imported: sharing that module with the
+// management entry would put it (and whatever else ends up alongside it) into a
+// webpack-generated "common" chunk, which breaks at runtime here since plugin
+// builds disable a shared runtime chunk (see webpack/base.mjs's `runtimeChunk`).
+function hexToRgb(hex: string): [number, number, number] {
+  const normalized = hex.replace('#', '');
+  return [
+    parseInt(normalized.slice(0, 2), 16),
+    parseInt(normalized.slice(2, 4), 16),
+    parseInt(normalized.slice(4, 6), 16),
+  ];
+}
+
+function paleBackground(hex: string, amount = 0.85): string {
+  const [r, g, b] = hexToRgb(hex);
+  const mix = (channel: number) => Math.round(channel + (255 - channel) * amount);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+function readableTextColor(hex: string): string {
+  const [r, g, b] = hexToRgb(hex);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? '#202020' : '#ffffff';
+}
+
 interface DisplayAppProps {
   eventId: number;
   loggedIn: boolean;
@@ -77,7 +102,15 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
       <div styleName="header-row">
         <div style={{width: GUTTER_PX}} />
         {gridData.columns.map(column => (
-          <div key={column.id} styleName="header-cell">
+          <div
+            key={column.id}
+            styleName="header-cell"
+            style={
+              column.color
+                ? {backgroundColor: `#${column.color}`, color: readableTextColor(`#${column.color}`)}
+                : undefined
+            }
+          >
             {column.title}
           </div>
         ))}
@@ -93,7 +126,11 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
         </div>
 
         {gridData.columns.map(column => (
-          <div key={column.id} styleName="column-track" style={{height: bodyHeight}}>
+          <div
+            key={column.id}
+            styleName="column-track"
+            style={{height: bodyHeight, backgroundColor: column.color ? paleBackground(`#${column.color}`) : undefined}}
+          >
             {slots.map(slotMinutes => (
               <div key={slotMinutes} styleName="cell" style={{height: SLOT_PX}} />
             ))}
@@ -119,6 +156,22 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
                   />
                 </div>
               ))}
+          </div>
+        ))}
+
+        {gridData.spanning_blocks.map(block => (
+          <div
+            key={block.id}
+            styleName="spanning-block"
+            style={{
+              top: minutesToOffsetPx(block.start_minutes, gridData.day_start_time, gridData.slot_minutes),
+              height: durationToPx(block.duration_minutes, gridData.slot_minutes),
+              left: GUTTER_PX,
+              backgroundColor: block.color ? `#${block.color}` : undefined,
+              color: block.color ? readableTextColor(`#${block.color}`) : undefined,
+            }}
+          >
+            {block.title}
           </div>
         ))}
       </div>
