@@ -5,24 +5,16 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-.favorite-star {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  margin: 0 !important;
-  cursor: pointer;
-  color: #aaa;
-  font-size: 1em;
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  min-width: 220px;
+}
 
-  &:hover {
-    color: #f0ad4e;
-  }
-
-  &.starred {
-    color: #f0ad4e;
-  }
-
-  @media print {
-    display: none;
-  }
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
 }

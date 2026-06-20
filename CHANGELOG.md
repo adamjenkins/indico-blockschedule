@@ -5,6 +5,50 @@ All notable changes to the Block Schedule plugin are documented here.
 ## [Unreleased]
 
 ### Added
+- Spreadsheet export of the schedule (CSV, ODS, Excel) from both the
+  management and display toolbars. XLSX/ODS exports carry a second
+  "Schedule Grid" sheet laid out like the visual grid itself — one merged,
+  multi-line cell per presentation (room, session, track, author(s),
+  date, time), spanning exactly the rows its duration covers; CSV stays a
+  flat list, since it has no concept of multiple sheets.
+- Printing the display page (paper size A4/A3/A2 × orientation), isolated
+  to just the grid plus an event-title header — the site's own header,
+  side menu, and breadcrumbs are hidden for the print, regardless of the
+  current theme's markup. A "Black and white" toggle on the display page
+  applies a live greyscale view, which printing simply reflects (there's
+  no separate colour choice in the print dialog itself).
+- Configurable row height, snap-to-minutes (separate from GapSnap, `0`
+  disables it), and per-column minimum width with horizontal scrolling
+  when columns don't fit.
+- Session/track info on each block, shown as pill badges, with a
+  per-event setting to hide them; an optional description preview
+  (hidden / truncated / full).
+- Manually-placed "session block" banners spanning some or all columns,
+  optionally tied to a real session for their title/colour — these are
+  presentation-only and never create a core session-block timetable
+  entry (see below).
+- Sticky column headers and a sticky, internally-scrollable unscheduled-
+  contributions panel in the management view; both the grid and that
+  panel are capped to 90% of the viewport height.
+- Autoscheduler: a "Clear schedule" checkbox that unschedules everything
+  in the chosen timespan without immediately rescheduling it; randomized
+  placement order on every run (still never splitting a session/track
+  across columns); and the ability to exclude specific sessions/tracks
+  from being scheduled (or cleared) at all.
+- The event's configured working hours render visibly greyed out in the
+  management grid, and dragging a contribution there bounces back instead
+  of scheduling it.
+- Contributions can no longer overlap in the same column/room — enforced
+  both server-side (manual drag-and-drop and the autoscheduler) and as an
+  instant client-side bounce-back on an overlapping drop.
+- A live time preview while dragging a scheduled contribution: a custom
+  cursor-following "ghost" box (the native browser drag-image is
+  suppressed, since it always paints above the rest of the page and
+  can't be drawn over) shows the time it would land on if dropped right
+  now, updating as you drag.
+- A grid icon next to "Block Schedule" in the management sidemenu, which
+  also now sits as its own top-level item directly under "Timetable"
+  rather than nested under "Organization".
 - Per-column color theming: each column can have its own color, shown
   saturated on the header (with an automatically-chosen readable text
   color) and as a pale tint across the column body.
@@ -24,7 +68,28 @@ All notable changes to the Block Schedule plugin are documented here.
   they show up in the regular Timetable too, same as scheduled
   contributions already did.
 
+### Changed
+- Scheduling a contribution (manually or via the autoscheduler) never
+  creates a core `SESSION_BLOCK` timetable entry — a contribution's
+  session is snapshotted onto its Block Schedule assignment purely for
+  display/grouping, then detached before scheduling, so it always lands
+  as a plain top-level entry. Track needs no such handling, since it has
+  no equivalent scheduling-time constraint.
+- Long titles wrap instead of being truncated; the default row height
+  was increased to make room.
+- Both the management and display pages now use the page's full
+  available width, instead of being capped to a ~700-950px column by the
+  surrounding theme.
+
 ### Fixed
+- The display page's "Print…" button didn't visibly do anything while
+  the page was in fullscreen — its options popup renders through a
+  React portal appended to `<body>` by default, which the Fullscreen API
+  hides since only the fullscreened element's own subtree is painted.
+  It's now mounted inside the fullscreened container instead.
+- Printing the display page left an empty gap on the left where the
+  (correctly hidden) side menu used to reserve space — the surrounding
+  theme's `margin-left` reservation for it is now cleared for print too.
 - Rescheduling a column-spanning block could crash with `Time change of
   ... was not tracked` — the move wasn't wrapped in
   `track_time_changes()`.

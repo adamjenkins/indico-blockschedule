@@ -52,6 +52,10 @@ class BlockScheduleColumn(db.Model):
         db.String,
         nullable=True
     )
+    min_width_px = db.Column(
+        db.Integer,
+        nullable=True
+    )
 
     event = db.relationship(
         'Event',

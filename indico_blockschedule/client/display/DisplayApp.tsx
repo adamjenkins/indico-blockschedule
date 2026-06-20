@@ -16,8 +16,11 @@ import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 
 import {ContributionBlock} from '../ContributionBlock';
 import {FullscreenButton} from '../FullscreenButton';
-import {buildSlots, durationToPx, GUTTER_PX, minutesToLabel, minutesToOffsetPx, SLOT_PX} from '../gridTime';
+import {buildSlots, durationToPx, GUTTER_PX, minutesToLabel, minutesToOffsetPx} from '../gridTime';
 import {BSGridData} from '../types';
+
+import {ExportButton} from './ExportButton';
+import {PrintButton} from './PrintButton';
 
 import './DisplayApp.module.scss';
 
@@ -54,6 +57,7 @@ interface DisplayAppProps {
 export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
   const [gridData, setGridData] = useState<BSGridData | null>(null);
   const [highlightStarred, setHighlightStarred] = useState(false);
+  const [blackAndWhite, setBlackAndWhite] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const load = async (day?: string) => {
@@ -75,10 +79,11 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
   }
 
   const slots = buildSlots(gridData.day_start_time, gridData.day_end_time, gridData.slot_minutes);
-  const bodyHeight = slots.length * SLOT_PX;
+  const rowHeightPx = gridData.row_height_px;
+  const bodyHeight = slots.length * rowHeightPx;
 
   return (
-    <div styleName="display-app" ref={containerRef}>
+    <div styleName={blackAndWhite ? 'display-app bs-bw' : 'display-app'} ref={containerRef}>
       <div styleName="toolbar">
         {gridData.event_days.length > 1 && (
           <Dropdown
@@ -96,6 +101,14 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
             onChange={(_e, {checked}) => setHighlightStarred(!!checked)}
           />
         )}
+        <Checkbox
+          toggle
+          label={Translate.string('Black and white')}
+          checked={blackAndWhite}
+          onChange={(_e, {checked}) => setBlackAndWhite(!!checked)}
+        />
+        <ExportButton eventId={eventId} day={gridData.day} />
+        <PrintButton containerRef={containerRef} eventTitle={gridData.event_title} />
         <FullscreenButton targetRef={containerRef} />
       </div>
 
@@ -105,11 +118,12 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
           <div
             key={column.id}
             styleName="header-cell"
-            style={
-              column.color
+            style={{
+              minWidth: column.min_width_px || undefined,
+              ...(column.color
                 ? {backgroundColor: `#${column.color}`, color: readableTextColor(`#${column.color}`)}
-                : undefined
-            }
+                : undefined),
+            }}
           >
             {column.title}
           </div>
@@ -119,7 +133,7 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
       <div styleName="body-row">
         <div styleName="time-gutter" style={{width: GUTTER_PX}}>
           {slots.map(slotMinutes => (
-            <div key={slotMinutes} styleName="time-label" style={{height: SLOT_PX}}>
+            <div key={slotMinutes} styleName="time-label" style={{height: rowHeightPx}}>
               {minutesToLabel(slotMinutes)}
             </div>
           ))}
@@ -129,10 +143,14 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
           <div
             key={column.id}
             styleName="column-track"
-            style={{height: bodyHeight, backgroundColor: column.color ? paleBackground(`#${column.color}`) : undefined}}
+            style={{
+              height: bodyHeight,
+              minWidth: column.min_width_px || undefined,
+              backgroundColor: column.color ? paleBackground(`#${column.color}`) : undefined,
+            }}
           >
             {slots.map(slotMinutes => (
-              <div key={slotMinutes} styleName="cell" style={{height: SLOT_PX}} />
+              <div key={slotMinutes} styleName="cell" style={{height: rowHeightPx}} />
             ))}
             {gridData.scheduled_contributions
               .filter(c => c.column_id === column.id && c.start_minutes !== null)
@@ -142,8 +160,8 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
                   styleName="scheduled-block"
                   style={{
                     top: minutesToOffsetPx(contribution.start_minutes as number, gridData.day_start_time,
-                                          gridData.slot_minutes),
-                    height: durationToPx(contribution.duration_minutes, gridData.slot_minutes),
+                                          gridData.slot_minutes, rowHeightPx),
+                    height: durationToPx(contribution.duration_minutes, gridData.slot_minutes, rowHeightPx),
                   }}
                 >
                   <ContributionBlock
@@ -152,10 +170,32 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
                     href={contribution.url}
                     highlightStarred={highlightStarred}
                     showFavorite={loggedIn}
+                    showSessionTrack={gridData.show_session_track}
                     style={{height: '100%'}}
                   />
                 </div>
               ))}
+            {gridData.session_blocks
+              .filter(block => block.column_ids === null || block.column_ids.includes(column.id))
+              .map(block => {
+                const spannedIds = block.column_ids ?? gridData.columns.map(c => c.id);
+                const firstSpannedColumn = gridData.columns.find(c => spannedIds.includes(c.id));
+                return (
+                  <div
+                    key={block.id}
+                    styleName="session-block"
+                    style={{
+                      top: minutesToOffsetPx(block.start_minutes, gridData.day_start_time, gridData.slot_minutes,
+                                            rowHeightPx),
+                      height: durationToPx(block.duration_minutes, gridData.slot_minutes, rowHeightPx),
+                      backgroundColor: block.color ? `#${block.color}` : '#e3f2d3',
+                      color: readableTextColor(block.color ? `#${block.color}` : '#e3f2d3'),
+                    }}
+                  >
+                    {firstSpannedColumn?.id === column.id && block.title}
+                  </div>
+                );
+              })}
           </div>
         ))}
 
@@ -164,8 +204,9 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
             key={block.id}
             styleName="spanning-block"
             style={{
-              top: minutesToOffsetPx(block.start_minutes, gridData.day_start_time, gridData.slot_minutes),
-              height: durationToPx(block.duration_minutes, gridData.slot_minutes),
+              top: minutesToOffsetPx(block.start_minutes, gridData.day_start_time, gridData.slot_minutes,
+                                    rowHeightPx),
+              height: durationToPx(block.duration_minutes, gridData.slot_minutes, rowHeightPx),
               left: GUTTER_PX,
               backgroundColor: block.color ? `#${block.color}` : undefined,
               color: block.color ? readableTextColor(`#${block.color}`) : undefined,

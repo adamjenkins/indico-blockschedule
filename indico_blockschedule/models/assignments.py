@@ -16,6 +16,15 @@ class BlockScheduleAssignment(db.Model):
     this table only records the column (and thus the displayed room
     label), since that's no longer derivable from the contribution's own
     location fields (see `columns.py`).
+
+    `session_id` is a snapshot of the contribution's `Session`, taken at
+    scheduling time: core Indico only allows a session's contributions to
+    be scheduled as children of a session-block timetable entry, but
+    Block Schedule deliberately never creates those — so the contribution
+    is detached from its session (`Contribution.session = None`) right
+    before scheduling, and the original session is kept here purely for
+    display/grouping. Track doesn't need this: `Contribution.track_id`
+    has no such scheduling-time constraint, so it's read live instead.
     """
 
     __tablename__ = 'assignments'
@@ -38,6 +47,12 @@ class BlockScheduleAssignment(db.Model):
         index=True,
         nullable=False
     )
+    session_id = db.Column(
+        db.Integer,
+        db.ForeignKey('events.sessions.id'),
+        index=True,
+        nullable=True
+    )
 
     contribution = db.relationship(
         'Contribution',
@@ -56,6 +71,14 @@ class BlockScheduleAssignment(db.Model):
             'assignments',
             lazy=True,
             cascade='all, delete-orphan'
+        )
+    )
+    session = db.relationship(
+        'Session',
+        lazy=True,
+        backref=db.backref(
+            'blockschedule_assignments',
+            lazy=True
         )
     )
 

@@ -8,7 +8,7 @@ authors = [
     { name = 'Adam Jenkins' },
 ]
 requires-python = '>=3.12.2, <3.13'
-dependencies = ['indico>=3.3']
+dependencies = ['indico>=3.3', 'odfpy>=1.4']
 
 [project.entry-points.'indico.plugins']
 blockschedule = 'indico_blockschedule.plugin:BlockschedulePlugin'

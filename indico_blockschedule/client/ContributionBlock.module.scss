@@ -31,24 +31,61 @@
 .title {
   font-weight: bold;
   font-size: 0.9em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
 }
 
 .people {
   font-size: 0.8em;
   color: #555;
+  overflow-wrap: break-word;
+}
+
+.badges {
+  position: absolute;
+  left: 4px;
+  bottom: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2em;
+  max-width: calc(100% - 4.5em);
+}
+
+.badge {
+  padding: 0 0.4em;
+  background-color: #2a6f97;
+  color: white;
+  border-radius: 8px;
+  font-size: 0.65em;
+  line-height: 1.5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.description {
+  font-size: 0.75em;
+  color: #555;
+  margin-top: 0.2em;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .time-range {
   position: absolute;
   bottom: 2px;
   right: 4px;
+  padding: 0 0.3em;
+  background-color: rgb(255 255 255 / 80%);
+  border-radius: 2px;
   font-size: 0.7em;
   color: #777;
   white-space: nowrap;
+}
+
+// The live drag preview of where a block would land if dropped right now (see
+// `ScheduleGrid`'s `dragPreview` state) -- visually distinct from the normal, settled time.
+.time-range-preview {
+  background-color: #f0ad4e;
+  color: #202020;
+  font-weight: bold;
 }

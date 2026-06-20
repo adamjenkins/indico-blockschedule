@@ -21,7 +21,13 @@ interface ContributionBlockProps {
   /** Dim this block unless it's starred (e.g. the display page's "highlight my timetable" toggle). */
   highlightStarred?: boolean;
   showFavorite?: boolean;
+  showSessionTrack?: boolean;
+  /** While this block is being dragged, the prospective start minute it would land on if
+   * dropped right now -- overrides the displayed time range and highlights it, so the time
+   * updates live as the block is dragged around instead of only after it's dropped. */
+  previewStartMinutes?: number | null;
   onDragStart?: (event: React.DragEvent, contribution: BSContribution) => void;
+  onDragEnd?: (event: React.DragEvent, contribution: BSContribution) => void;
   style?: React.CSSProperties;
 }
 
@@ -32,18 +38,23 @@ export function ContributionBlock({
   href,
   highlightStarred,
   showFavorite = true,
+  showSessionTrack = true,
+  previewStartMinutes,
   onDragStart,
+  onDragEnd,
   style,
 }: ContributionBlockProps) {
   const [starred, setStarred] = useState(contribution.is_starred);
   useEffect(() => setStarred(contribution.is_starred), [contribution.is_starred]);
 
+  const displayedStartMinutes = previewStartMinutes ?? contribution.start_minutes;
   const timeRange =
-    contribution.start_minutes !== null
-      ? `${minutesToLabel(contribution.start_minutes)}–${minutesToLabel(
-          contribution.start_minutes + (contribution.duration_minutes ?? 0)
+    displayedStartMinutes !== null && displayedStartMinutes !== undefined
+      ? `${minutesToLabel(displayedStartMinutes)}–${minutesToLabel(
+          displayedStartMinutes + (contribution.duration_minutes ?? 0)
         )}`
       : null;
+  const isPreview = previewStartMinutes !== null && previewStartMinutes !== undefined;
 
   const content = (
     <>
@@ -57,7 +68,14 @@ export function ContributionBlock({
       )}
       <div styleName="title">{contribution.title}</div>
       <div styleName="people">{contribution.people.join(', ')}</div>
-      {timeRange && <div styleName="time-range">{timeRange}</div>}
+      {contribution.description && <div styleName="description">{contribution.description}</div>}
+      {showSessionTrack && (contribution.session_name || contribution.track_name) && (
+        <div styleName="badges">
+          {contribution.session_name && <span styleName="badge">{contribution.session_name}</span>}
+          {contribution.track_name && <span styleName="badge">{contribution.track_name}</span>}
+        </div>
+      )}
+      {timeRange && <div styleName={isPreview ? 'time-range time-range-preview' : 'time-range'}>{timeRange}</div>}
     </>
   );
 
@@ -74,6 +92,7 @@ export function ContributionBlock({
         style={style}
         draggable={draggable}
         onDragStart={e => onDragStart?.(e, contribution)}
+        onDragEnd={e => onDragEnd?.(e, contribution)}
       >
         {content}
       </a>
@@ -86,6 +105,7 @@ export function ContributionBlock({
       style={style}
       draggable={draggable}
       onDragStart={e => onDragStart?.(e, contribution)}
+      onDragEnd={e => onDragEnd?.(e, contribution)}
     >
       {content}
     </div>

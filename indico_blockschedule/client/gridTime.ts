@@ -5,7 +5,8 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-export const SLOT_PX = 40;
+/** Fallback used only before grid data (which always carries the event's own `row_height_px`) has loaded. */
+export const DEFAULT_ROW_HEIGHT_PX = 60;
 export const GUTTER_PX = 80;
 
 export function parseTimeToMinutes(value: string): number {
@@ -32,14 +33,14 @@ export function minutesToLabel(minutes: number): string {
 }
 
 /** Pixel offset, from the top of the grid, of a given minute-of-day. */
-export function minutesToOffsetPx(minutes: number, dayStartTime: string, slotMinutes: number): number {
-  return ((minutes - parseTimeToMinutes(dayStartTime)) / slotMinutes) * SLOT_PX;
+export function minutesToOffsetPx(minutes: number, dayStartTime: string, slotMinutes: number, rowHeightPx: number): number {
+  return ((minutes - parseTimeToMinutes(dayStartTime)) / slotMinutes) * rowHeightPx;
 }
 
 /** Pixel height representing a duration, proportional to the actual minutes (not rounded to a slot). */
-export function durationToPx(durationMinutes: number | null, slotMinutes: number): number {
+export function durationToPx(durationMinutes: number | null, slotMinutes: number, rowHeightPx: number): number {
   if (!durationMinutes) {
-    return SLOT_PX;
+    return rowHeightPx;
   }
-  return (durationMinutes / slotMinutes) * SLOT_PX;
+  return (durationMinutes / slotMinutes) * rowHeightPx;
 }

@@ -7,14 +7,19 @@
 
 .grid-wrapper {
   flex: 1;
+  max-height: 90vh;
   overflow: auto;
   padding: 1em;
 }
 
 .header-row {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   display: flex;
   gap: 2px;
   margin-bottom: 2px;
+  background-color: white;
 }
 
 .corner {
@@ -46,6 +51,12 @@
   background: none;
   cursor: pointer;
   flex: 0 0 auto;
+}
+
+.width-input {
+  width: 3.2em;
+  flex: 0 0 auto;
+  font-size: 0.85em;
 }
 
 .delete-icon {
@@ -88,6 +99,12 @@
   border: 1px solid #eee;
 }
 
+.cell-outside-hours {
+  // Opaque grey, not a darkening overlay -- needs to fully hide the column's own colour tint
+  // underneath (`.column-track`'s `background-color`), not just shade it.
+  background-color: #d4d4d4;
+}
+
 .scheduled-block {
   position: absolute;
   left: 1px;
@@ -124,6 +141,83 @@
   gap: 0.5em;
   align-items: center;
   margin-top: 0.5em;
+}
+
+.add-session-block {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  align-items: center;
+  margin-top: 0.5em;
+}
+
+.column-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  font-size: 0.85em;
+}
+
+.session-block {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  box-sizing: border-box;
+  padding: 0.2em 0.5em;
+  border: 1px solid rgb(0 0 0 / 15%);
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.85em;
+}
+
+.session-block-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// A full stand-in for the native drag-image "ghost" (which is suppressed entirely -- see
+// `EMPTY_DRAG_IMAGE` in ScheduleGrid.tsx): follows the cursor at the same position/size the
+// suppressed native ghost would have had, so dragging still has a visible block-shaped cue,
+// with the live "where would this land" time tooltip anchored to its bottom-right corner.
+.drag-ghost-box {
+  position: fixed;
+  z-index: 9999;
+  box-sizing: border-box;
+  background-color: rgb(238 246 252 / 90%);
+  border: 2px dashed #2a6f97;
+  border-radius: 3px;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgb(0 0 0 / 30%);
+}
+
+.drag-ghost-title {
+  padding: 0.4em 0.6em;
+  overflow: hidden;
+  font-weight: bold;
+  font-size: 0.9em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drag-ghost-tooltip {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  z-index: 1;
+  padding: 0.15em 0.5em;
+  background-color: #d9480f;
+  color: white;
+  border: 2px solid #8a2c05;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 1.5em;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 40%);
 }
 
 .spanning-block {

@@ -28,6 +28,10 @@ class BlockschedulePlugin(IndicoPlugin):
         'day_start_time': '09:00',
         'day_end_time': '18:00',
         'gap_minutes': 0,
+        'snap_minutes': 5,
+        'row_height_px': 60,
+        'show_session_track': True,
+        'description_display': 'hidden',
     }
 
     def init(self):
@@ -39,7 +43,7 @@ class BlockschedulePlugin(IndicoPlugin):
         if not event.can_manage(session.user):
             return
         return SideMenuItem('blockschedule', _('Block Schedule'), url_for_plugin('blockschedule.manage', event),
-                            section='organization')
+                            weight=79, icon='grid')
 
     def _add_display_sidemenu_item(self, sender, **kwargs):
         return MenuEntryData(title=_('Block Schedule'), name='blockschedule', endpoint='blockschedule.display',

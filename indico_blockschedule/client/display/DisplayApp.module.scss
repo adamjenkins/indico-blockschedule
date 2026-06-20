@@ -5,12 +5,31 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
+// The legacy "conference" display theme this page renders inside of hardcodes
+// `#confSectionsBox { width: 950px; margin: 0 auto; }` (and a 230px reservation for the left
+// nav in `.confBodyBox`/`.mainContent`/`.col2`), leaving only a ~700px-wide column for our
+// content regardless of actual viewport width. This page (and only this page, since the
+// override only ships in this page's own CSS bundle) widens that reservation to use the
+// available page width instead, while keeping the left nav's own space intact. Not scoped
+// under `@media print` -- the same widened layout is what gets printed too.
+:global(#confSectionsBox) {
+  width: calc(100% - 40px) !important;
+  max-width: none !important;
+}
+
 .display-app {
   padding: 1em;
   overflow: auto;
 
   &:fullscreen {
     background: white;
+  }
+
+  // The "Black and white" toolbar toggle -- applies on screen, not just when printing,
+  // since the request is to *view* the grid in greyscale, with printing simply reflecting
+  // whatever's already on screen.
+  &.bs-bw {
+    filter: grayscale(1);
   }
 }
 
@@ -19,6 +38,37 @@
   align-items: center;
   gap: 1.5em;
   margin-bottom: 1em;
+
+  @media print {
+    display: none;
+  }
+}
+
+@media print {
+  .display-app {
+    overflow: visible;
+    padding: 0;
+  }
+
+  // `printGrid.ts` hides the left nav (`.conf_leftMenu`, a sibling of `.confBodyBox`) entirely
+  // for printing, but that doesn't touch `.confBodyBox`'s own hardcoded `margin-left: 230px`
+  // (reserved for that nav) -- without this, print output would still have an empty 230px gap
+  // on the left where the now-invisible nav used to be.
+  :global(.confBodyBox) {
+    margin-left: 0 !important;
+  }
+}
+
+// Plain DOM element (see `printGrid.ts`), not a React-rendered/CSS-modules-scoped one.
+:global(#bs-print-header) {
+  display: none;
+
+  @media print {
+    display: block;
+    margin-bottom: 0.5em;
+    font-size: 1.4em;
+    font-weight: bold;
+  }
 }
 
 .header-row {
@@ -87,4 +137,19 @@
   border-radius: 3px;
   background-color: #e0e0e0;
   font-weight: bold;
+}
+
+.session-block {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  z-index: 1;
+  box-sizing: border-box;
+  padding: 0.2em 0.5em;
+  border: 1px solid rgb(0 0 0 / 15%);
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.85em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

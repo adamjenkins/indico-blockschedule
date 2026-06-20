@@ -12,12 +12,15 @@ export interface BSColumn {
   label: string;
   title: string;
   color: string | null;
+  min_width_px: number | null;
 }
 
 export interface BSRoom {
   id: number;
   full_name: string;
 }
+
+export type BSDescriptionDisplay = 'hidden' | 'full' | 'truncated';
 
 export interface BSContribution {
   id: number;
@@ -29,6 +32,9 @@ export interface BSContribution {
   start_dt: string | null;
   url: string;
   is_starred: boolean;
+  session_name: string | null;
+  track_name: string | null;
+  description: string | null;
 }
 
 export interface BSSpanningBlock {
@@ -39,17 +45,48 @@ export interface BSSpanningBlock {
   color: string | null;
 }
 
+export interface BSSessionBlock {
+  id: number;
+  session_id: number | null;
+  title: string | null;
+  start_minutes: number;
+  duration_minutes: number;
+  color: string | null;
+  column_ids: number[] | null;
+}
+
+export interface BSSession {
+  id: number;
+  title: string;
+  color: string | null;
+}
+
+export interface BSTrack {
+  id: number;
+  title: string;
+}
+
 export interface BSGridData {
   day: string;
   event_days: string[];
+  event_title: string;
   columns: BSColumn[];
   roombooking_enabled: boolean;
   rooms: BSRoom[];
+  sessions: BSSession[];
+  tracks: BSTrack[];
   scheduled_contributions: BSContribution[];
   unscheduled_contributions: BSContribution[];
   spanning_blocks: BSSpanningBlock[];
+  session_blocks: BSSessionBlock[];
   slot_minutes: number;
   day_start_time: string;
   day_end_time: string;
+  working_hours_start: string;
+  working_hours_end: string;
   gap_minutes: number;
+  snap_minutes: number;
+  row_height_px: number;
+  show_session_track: boolean;
+  description_display: BSDescriptionDisplay;
 }

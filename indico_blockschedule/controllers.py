@@ -18,15 +18,20 @@ from indico.core.db import db
 from indico.modules.events.contributions.models.contributions import Contribution
 from indico.modules.events.controllers.base import RHDisplayEventBase
 from indico.modules.events.management.controllers.base import RHManageEventBase
+from indico.modules.events.sessions.models.sessions import Session
 from indico.modules.events.timetable.models.entries import TimetableEntryType
 from indico.modules.events.timetable.operations import create_break_entry, delete_timetable_entry, update_break_entry
 from indico.modules.events.util import track_time_changes
 from indico.modules.rb.models.rooms import Room
+from indico.util.spreadsheets import send_csv
 
 from indico_blockschedule.models.columns import BlockScheduleColumn
-from indico_blockschedule.util import (assign_contribution_to_column, autoschedule, get_spanning_blocks,
-                                       get_unscheduled_contributions, serialize_column, serialize_contribution,
-                                       serialize_spanning_block)
+from indico_blockschedule.models.session_blocks import BlockScheduleSessionBlock
+from indico_blockschedule.util import (ScheduleOverlapError, assign_contribution_to_column, autoschedule,
+                                       build_export_rows, build_export_sheets, clear_schedule, get_session_blocks,
+                                       get_spanning_blocks, get_unscheduled_contributions, send_ods,
+                                       send_xlsx_multisheet, serialize_column, serialize_contribution,
+                                       serialize_session_block, serialize_spanning_block)
 from indico_blockschedule.views import WPDisplayBlockSchedule, WPManageBlockSchedule
 
 
@@ -99,7 +104,9 @@ def _grid_payload(event, day, user=None, *, full_day=False):
     unscheduled = get_unscheduled_contributions(event)
     settings = BlockschedulePlugin.event_settings.get_all(event)
     spanning_blocks = get_spanning_blocks(event, day)
-    serialized_scheduled = [serialize_contribution(c, user) for c in scheduled]
+    session_blocks = get_session_blocks(event, day)
+    description_display = settings['description_display']
+    serialized_scheduled = [serialize_contribution(c, user, description_display) for c in scheduled]
     serialized_spanning_blocks = [serialize_spanning_block(e) for e in spanning_blocks]
     if full_day:
         day_start_time, day_end_time = '00:00', '24:00'
@@ -109,17 +116,28 @@ def _grid_payload(event, day, user=None, *, full_day=False):
     return {
         'day': day.isoformat(),
         'event_days': [d.isoformat() for d in event.iter_days()],
+        'event_title': event.title,
         'columns': [serialize_column(c) for c in columns],
         'roombooking_enabled': config.ENABLE_ROOMBOOKING,
         'rooms': ([{'id': r.id, 'full_name': r.full_name} for r in Room.query.filter_by(is_deleted=False)]
                  if config.ENABLE_ROOMBOOKING else []),
+        'sessions': [{'id': s.id, 'title': s.title, 'color': s.colors.background if s.colors else None}
+                    for s in event.sessions if not s.is_deleted],
+        'tracks': [{'id': t.id, 'title': t.title} for t in event.tracks],
         'scheduled_contributions': serialized_scheduled,
-        'unscheduled_contributions': [serialize_contribution(c, user) for c in unscheduled],
+        'unscheduled_contributions': [serialize_contribution(c, user, description_display) for c in unscheduled],
         'spanning_blocks': serialized_spanning_blocks,
+        'session_blocks': [serialize_session_block(b) for b in session_blocks],
         'slot_minutes': settings['slot_minutes'],
         'day_start_time': day_start_time,
         'day_end_time': day_end_time,
+        'working_hours_start': settings['day_start_time'],
+        'working_hours_end': settings['day_end_time'],
         'gap_minutes': settings['gap_minutes'],
+        'snap_minutes': settings['snap_minutes'],
+        'row_height_px': settings['row_height_px'],
+        'show_session_track': settings['show_session_track'],
+        'description_display': description_display,
     }
 
 
@@ -143,8 +161,9 @@ class RHColumnCreate(RHBlockScheduleManageBase):
         'room_id': fields.Int(load_default=None),
         'label': fields.Str(load_default=None),
         'color': fields.Str(load_default=None),
+        'min_width_px': fields.Int(load_default=None),
     })
-    def _process_POST(self, room_id, label, color):
+    def _process_POST(self, room_id, label, color, min_width_px):
         room = None
         if room_id is not None:
             room = Room.query.filter_by(id=room_id, is_deleted=False).first_or_404()
@@ -153,11 +172,13 @@ class RHColumnCreate(RHBlockScheduleManageBase):
             if room is None:
                 raise BadRequest('label is required when no room is selected')
             label = room.full_name
+        if min_width_px is not None and min_width_px < 0:
+            raise BadRequest('min_width_px cannot be negative')
         max_position = (db.session.query(db.func.max(BlockScheduleColumn.position))
                         .filter(BlockScheduleColumn.event_id == self.event.id)
                         .scalar())
         column = BlockScheduleColumn(event=self.event, room=room, label=label, color=_validate_color(color),
-                                     position=(max_position or 0) + 1)
+                                     min_width_px=min_width_px, position=(max_position or 0) + 1)
         db.session.add(column)
         db.session.flush()
         return jsonify(serialize_column(column))
@@ -174,8 +195,9 @@ class RHColumnDeleteUpdate(RHBlockScheduleManageBase):
         'label': fields.Str(load_default=None),
         'position': fields.Int(load_default=None),
         'color': fields.Str(load_default=None, allow_none=True),
+        'min_width_px': fields.Int(load_default=None),
     })
-    def _process_PATCH(self, label, position, color):
+    def _process_PATCH(self, label, position, color, min_width_px):
         if label is not None:
             label = label.strip()
             if not label:
@@ -185,6 +207,12 @@ class RHColumnDeleteUpdate(RHBlockScheduleManageBase):
             self.column.position = position
         if color is not None:
             self.column.color = _validate_color(color) if color else None
+        if min_width_px is not None:
+            if min_width_px < 0:
+                raise BadRequest('min_width_px cannot be negative')
+            # 0 means "no minimum" -- simpler than distinguishing "not provided" from
+            # "explicitly cleared" through webargs' load_default.
+            self.column.min_width_px = min_width_px or None
         db.session.flush()
         return jsonify(serialize_column(self.column))
 
@@ -229,7 +257,10 @@ class RHScheduleContribution(RHBlockScheduleManageBase):
         contribution = Contribution.query.filter_by(id=contribution_id, event_id=self.event.id).first_or_404()
         column = BlockScheduleColumn.query.filter_by(id=column_id, event_id=self.event.id).first_or_404()
         start_dt = _combine_local(self.event, day, start_minutes)
-        assign_contribution_to_column(contribution, column, start_dt)
+        try:
+            assign_contribution_to_column(contribution, column, start_dt)
+        except ScheduleOverlapError as exc:
+            raise BadRequest(str(exc))
         return jsonify(serialize_contribution(contribution, session.user))
 
 
@@ -247,16 +278,39 @@ class RHUnscheduleContribution(RHBlockScheduleManageBase):
         return jsonify(serialize_contribution(contribution, session.user))
 
 
-class RHGapSettingsUpdate(RHBlockScheduleManageBase):
+_DESCRIPTION_DISPLAY_CHOICES = ('hidden', 'full', 'truncated')
+
+
+class RHSettingsUpdate(RHBlockScheduleManageBase):
     @use_kwargs({
-        'gap_minutes': fields.Int(required=True),
+        'gap_minutes': fields.Int(load_default=None),
+        'snap_minutes': fields.Int(load_default=None),
+        'row_height_px': fields.Int(load_default=None),
+        'show_session_track': fields.Bool(load_default=None),
+        'description_display': fields.Str(load_default=None),
     })
-    def _process_PATCH(self, gap_minutes):
+    def _process_PATCH(self, gap_minutes, snap_minutes, row_height_px, show_session_track, description_display):
         from indico_blockschedule.plugin import BlockschedulePlugin
-        if gap_minutes < 0:
-            raise BadRequest('gap_minutes cannot be negative')
-        BlockschedulePlugin.event_settings.set(self.event, 'gap_minutes', gap_minutes)
-        return jsonify(gap_minutes=gap_minutes)
+        settings = BlockschedulePlugin.event_settings
+        if gap_minutes is not None:
+            if gap_minutes < 0:
+                raise BadRequest('gap_minutes cannot be negative')
+            settings.set(self.event, 'gap_minutes', gap_minutes)
+        if snap_minutes is not None:
+            if snap_minutes < 0:
+                raise BadRequest('snap_minutes cannot be negative')
+            settings.set(self.event, 'snap_minutes', snap_minutes)
+        if row_height_px is not None:
+            if row_height_px < 20:
+                raise BadRequest('row_height_px is too small')
+            settings.set(self.event, 'row_height_px', row_height_px)
+        if show_session_track is not None:
+            settings.set(self.event, 'show_session_track', show_session_track)
+        if description_display is not None:
+            if description_display not in _DESCRIPTION_DISPLAY_CHOICES:
+                raise BadRequest(f'description_display must be one of {_DESCRIPTION_DISPLAY_CHOICES}')
+            settings.set(self.event, 'description_display', description_display)
+        return jsonify(settings.get_all(self.event))
 
 
 class RHAutoSchedule(RHBlockScheduleManageBase):
@@ -265,8 +319,12 @@ class RHAutoSchedule(RHBlockScheduleManageBase):
         'start_minutes': fields.Int(required=True),
         'end_day': fields.Str(required=True),
         'end_minutes': fields.Int(required=True),
+        'clear': fields.Bool(load_default=False),
+        'exclude_session_ids': fields.List(fields.Int(), load_default=()),
+        'exclude_track_ids': fields.List(fields.Int(), load_default=()),
     })
-    def _process_POST(self, start_day, start_minutes, end_day, end_minutes):
+    def _process_POST(self, start_day, start_minutes, end_day, end_minutes, clear,
+                      exclude_session_ids, exclude_track_ids):
         from indico_blockschedule.plugin import BlockschedulePlugin
         start_dt = _combine_local(self.event, _event_day(self.event, start_day), start_minutes)
         end_dt = _combine_local(self.event, _event_day(self.event, end_day), end_minutes)
@@ -278,9 +336,18 @@ class RHAutoSchedule(RHBlockScheduleManageBase):
                   .all())
         if not columns:
             raise BadRequest('Add at least one column before autoscheduling')
+        exclude_session_ids = set(exclude_session_ids)
+        exclude_track_ids = set(exclude_track_ids)
+        if clear:
+            # "Clear schedule" is just that -- it doesn't also run the autoscheduler
+            # afterwards. Run it again unchecked if you want to reschedule.
+            clear_schedule(self.event, columns, start_dt, end_dt,
+                          exclude_session_ids=exclude_session_ids, exclude_track_ids=exclude_track_ids)
+            return jsonify(cleared=True, unscheduled_count=0, unscheduled_titles=[])
         gap_minutes = BlockschedulePlugin.event_settings.get(self.event, 'gap_minutes')
-        leftover = autoschedule(self.event, columns, start_dt, end_dt, gap_minutes)
-        return jsonify(unscheduled_count=len(leftover),
+        leftover = autoschedule(self.event, columns, start_dt, end_dt, gap_minutes,
+                               exclude_session_ids=exclude_session_ids, exclude_track_ids=exclude_track_ids)
+        return jsonify(cleared=False, unscheduled_count=len(leftover),
                        unscheduled_titles=[c.title for c in leftover])
 
 
@@ -350,6 +417,101 @@ class RHSpanningBlockDeleteUpdate(RHBlockScheduleManageBase):
         return jsonify(success=True)
 
 
+class RHSessionBlockCreate(RHBlockScheduleManageBase):
+    @use_kwargs({
+        'session_id': fields.Int(load_default=None),
+        'title': fields.Str(load_default=None),
+        'day': fields.Str(required=True),
+        'start_minutes': fields.Int(required=True),
+        'duration_minutes': fields.Int(required=True),
+        'color': fields.Str(load_default=None),
+        'column_ids': fields.List(fields.Int(), load_default=None),
+    })
+    def _process_POST(self, session_id, title, day, start_minutes, duration_minutes, color, column_ids):
+        session_ = None
+        if session_id is not None:
+            session_ = Session.query.filter_by(id=session_id, event_id=self.event.id, is_deleted=False).first_or_404()
+        title = (title or '').strip() or None
+        if not title and session_ is None:
+            raise BadRequest('title is required when no session is selected')
+        if duration_minutes <= 0:
+            raise BadRequest('duration_minutes must be positive')
+        if column_ids:
+            valid_ids = {c.id for c in BlockScheduleColumn.query.filter_by(event_id=self.event.id)}
+            if not set(column_ids) <= valid_ids:
+                raise BadRequest('column_ids must reference columns of this event')
+        start_dt = _combine_local(self.event, _event_day(self.event, day), start_minutes)
+        block = BlockScheduleSessionBlock(
+            event=self.event, session=session_, title=title, color=_validate_color(color),
+            start_dt=start_dt, duration=timedelta(minutes=duration_minutes), column_ids=column_ids or None)
+        db.session.add(block)
+        db.session.flush()
+        return jsonify(serialize_session_block(block))
+
+
+class RHSessionBlockDeleteUpdate(RHBlockScheduleManageBase):
+    def _process_args(self):
+        RHBlockScheduleManageBase._process_args(self)
+        self.block = (BlockScheduleSessionBlock.query
+                     .filter_by(id=request.view_args['block_id'], event_id=self.event.id)
+                     .first_or_404())
+
+    @use_kwargs({
+        'session_id': fields.Int(load_default=None, allow_none=True),
+        'title': fields.Str(load_default=None),
+        'day': fields.Str(load_default=None),
+        'start_minutes': fields.Int(load_default=None),
+        'duration_minutes': fields.Int(load_default=None),
+        'color': fields.Str(load_default=None, allow_none=True),
+        'column_ids': fields.List(fields.Int(), load_default=None, allow_none=True),
+    })
+    def _process_PATCH(self, session_id, title, day, start_minutes, duration_minutes, color, column_ids):
+        if session_id is not None:
+            self.block.session = (Session.query.filter_by(id=session_id, event_id=self.event.id, is_deleted=False)
+                                  .first_or_404()) if session_id else None
+        if title is not None:
+            self.block.title = title.strip() or None
+        if day is not None and start_minutes is not None:
+            self.block.start_dt = _combine_local(self.event, _event_day(self.event, day), start_minutes)
+        if duration_minutes is not None:
+            if duration_minutes <= 0:
+                raise BadRequest('duration_minutes must be positive')
+            self.block.duration = timedelta(minutes=duration_minutes)
+        if color is not None:
+            self.block.color = _validate_color(color) if color else None
+        if column_ids is not None:
+            if column_ids:
+                valid_ids = {c.id for c in BlockScheduleColumn.query.filter_by(event_id=self.event.id)}
+                if not set(column_ids) <= valid_ids:
+                    raise BadRequest('column_ids must reference columns of this event')
+            self.block.column_ids = column_ids or None
+        db.session.flush()
+        return jsonify(serialize_session_block(self.block))
+
+    def _process_DELETE(self):
+        db.session.delete(self.block)
+        db.session.flush()
+        return jsonify(success=True)
+
+
+_EXPORT_FORMATS = ('csv', 'xlsx', 'ods')
+
+
+def _export_response(event, fmt):
+    if fmt not in _EXPORT_FORMATS:
+        raise BadRequest(f'format must be one of {_EXPORT_FORMATS}')
+    day = _event_day(event, request.args.get('day'))
+    if fmt == 'csv':
+        # CSV has no concept of multiple sheets, so it only ever gets the flat contribution
+        # list -- the second, grid-shaped sheet is xlsx/ods only.
+        headers, rows = build_export_rows(event, day)
+        return send_csv('block-schedule.csv', headers, rows)
+    sheets = build_export_sheets(event, day)
+    if fmt == 'xlsx':
+        return send_xlsx_multisheet('block-schedule.xlsx', sheets)
+    return send_ods('block-schedule.ods', sheets)
+
+
 class RHDisplayBlockSchedule(RHDisplayEventBase):
     def _process(self):
         return WPDisplayBlockSchedule.render_template('display.html', self.event)
@@ -359,3 +521,13 @@ class RHDisplayGridData(RHDisplayEventBase):
     def _process(self):
         day = _event_day(self.event, request.args.get('day'))
         return jsonify(_grid_payload(self.event, day, session.user))
+
+
+class RHDisplayExport(RHDisplayEventBase):
+    def _process(self):
+        return _export_response(self.event, request.view_args['fmt'])
+
+
+class RHManageExport(RHBlockScheduleManageBase):
+    def _process(self):
+        return _export_response(self.event, request.view_args['fmt'])

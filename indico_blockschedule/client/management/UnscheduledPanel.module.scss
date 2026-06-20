@@ -6,7 +6,10 @@
 // see the LICENSE file for more details.
 
 .panel {
+  position: sticky;
+  top: 0;
   flex: 0 0 220px;
+  max-height: 90vh;
   padding: 1em;
   background-color: #f8f8f8;
   border-right: 1px solid #ddd;

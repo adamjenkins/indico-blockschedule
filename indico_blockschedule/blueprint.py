@@ -8,9 +8,10 @@
 from indico.core.plugins import IndicoPluginBlueprint
 
 from indico_blockschedule.controllers import (RHAutoSchedule, RHColumnCreate, RHColumnDeleteUpdate, RHColumnReorder,
-                                              RHDisplayBlockSchedule, RHDisplayGridData, RHGapSettingsUpdate,
-                                              RHManageBlockSchedule, RHManageGridData, RHScheduleContribution,
-                                              RHSpanningBlockCreate, RHSpanningBlockDeleteUpdate,
+                                              RHDisplayBlockSchedule, RHDisplayExport, RHDisplayGridData,
+                                              RHManageBlockSchedule, RHManageExport, RHManageGridData,
+                                              RHScheduleContribution, RHSessionBlockCreate, RHSessionBlockDeleteUpdate,
+                                              RHSettingsUpdate, RHSpanningBlockCreate, RHSpanningBlockDeleteUpdate,
                                               RHUnscheduleContribution)
 
 
@@ -29,13 +30,20 @@ blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/schedule', '
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/unschedule', 'unschedule',
                        RHUnscheduleContribution, methods=('POST',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/settings', 'settings_update',
-                       RHGapSettingsUpdate, methods=('PATCH',))
+                       RHSettingsUpdate, methods=('PATCH',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/autoschedule', 'autoschedule', RHAutoSchedule,
                        methods=('POST',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/spanning-blocks', 'spanning_blocks_create',
                        RHSpanningBlockCreate, methods=('POST',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/spanning-blocks/<int:entry_id>',
                        'spanning_blocks_delete_update', RHSpanningBlockDeleteUpdate, methods=('PATCH', 'DELETE'))
+blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/session-blocks', 'session_blocks_create',
+                       RHSessionBlockCreate, methods=('POST',))
+blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/session-blocks/<int:block_id>',
+                       'session_blocks_delete_update', RHSessionBlockDeleteUpdate, methods=('PATCH', 'DELETE'))
+blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/export/<string:fmt>', 'manage_export',
+                       RHManageExport)
 
 blueprint.add_url_rule('/event/<int:event_id>/block-schedule/', 'display', RHDisplayBlockSchedule)
 blueprint.add_url_rule('/event/<int:event_id>/block-schedule/grid-data', 'display_grid_data', RHDisplayGridData)
+blueprint.add_url_rule('/event/<int:event_id>/block-schedule/export/<string:fmt>', 'display_export', RHDisplayExport)

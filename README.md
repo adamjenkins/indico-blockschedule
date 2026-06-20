@@ -26,14 +26,35 @@ down the rows, rooms run across the columns.
   header onto another.
 - "GapSnap": set a gap to leave after every contribution, and dragging a
   contribution near a neighbor snaps it to that gap automatically.
+- Column-spanning blocks for things that apply to the whole conference
+  at once (lunch breaks, plenary sessions) — a single bar drawn across
+  every column for a given time range. Manually-placed "session block"
+  banners work the same way but can span just some of the columns, and
+  can be tied to a real session for their title/colour.
+- Export the schedule as CSV, ODS, or Excel — the spreadsheet formats
+  include a second sheet laid out like the visual grid itself, with one
+  merged cell per presentation carrying its room, session, track,
+  author(s), and date/time.
+- Printing the display page (any of A4/A3/A2, portrait or landscape)
+  shows just the grid and the event title, not the surrounding site
+  chrome, and respects the page's own "Black and white" toggle.
 - An autoscheduler fills a given timespan for you: it keeps a session's
   (or, failing that, a track's) contributions together and back-to-back
   in the same column, avoids parallel-scheduling the same session/track
   across different columns, places everything else wherever there's
-  room, and respects the GapSnap gap throughout.
-- Column-spanning blocks for things that apply to the whole conference
-  at once (lunch breaks, plenary sessions) — a single bar drawn across
-  every column for a given time range.
+  room, respects the GapSnap gap throughout, randomizes placement order
+  on every run, can clear a timespan without immediately refilling it,
+  and can exclude specific sessions/tracks from being touched at all.
+- Configurable row height, snap-to-minutes, and per-column minimum width;
+  session/track shown as pill badges (with a setting to hide them) and an
+  optional description preview.
+- Contributions can never overlap in the same room/time, and dropping one
+  outside the event's configured working hours (shown visibly greyed
+  out) just bounces back instead of scheduling it. A live, cursor-
+  following preview shows the time a dragged contribution would land on
+  before you drop it.
+- Sticky column headers and a sticky, scrollable unscheduled-
+  contributions panel, both capped to the viewport height.
 
 Block Schedule is added alongside Indico's built-in Timetable feature, not
 a replacement for it — both stay usable, and scheduling writes into

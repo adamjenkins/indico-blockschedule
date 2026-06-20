@@ -11,6 +11,8 @@ import columnsUpdateURL from 'indico-url:plugin_blockschedule.columns_delete_upd
 import columnsReorderURL from 'indico-url:plugin_blockschedule.columns_reorder';
 import gridDataURL from 'indico-url:plugin_blockschedule.manage_grid_data';
 import scheduleURL from 'indico-url:plugin_blockschedule.schedule';
+import sessionBlocksCreateURL from 'indico-url:plugin_blockschedule.session_blocks_create';
+import sessionBlocksUpdateURL from 'indico-url:plugin_blockschedule.session_blocks_delete_update';
 import settingsUpdateURL from 'indico-url:plugin_blockschedule.settings_update';
 import spanningBlocksCreateURL from 'indico-url:plugin_blockschedule.spanning_blocks_create';
 import spanningBlocksUpdateURL from 'indico-url:plugin_blockschedule.spanning_blocks_delete_update';
@@ -18,15 +20,16 @@ import unscheduleURL from 'indico-url:plugin_blockschedule.unschedule';
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
-import {Dropdown, Loader} from 'semantic-ui-react';
+import {Checkbox, Dropdown, Loader} from 'semantic-ui-react';
 
 import {Translate} from 'indico/react/i18n';
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 
 import {FullscreenButton} from '../FullscreenButton';
-import {BSGridData} from '../types';
+import {BSDescriptionDisplay, BSGridData} from '../types';
 
 import {AutoscheduleForm} from './AutoscheduleForm';
+import {ExportButton} from './ExportButton';
 import {ScheduleGrid} from './ScheduleGrid';
 import {UnscheduledPanel} from './UnscheduledPanel';
 
@@ -93,7 +96,10 @@ export function ManageApp({eventId}: ManageAppProps) {
     }
   };
 
-  const updateColumn = async (columnId: number, data: {label?: string; color?: string | null}) => {
+  const updateColumn = async (
+    columnId: number,
+    data: {label?: string; color?: string | null; min_width_px?: number}
+  ) => {
     try {
       await indicoAxios.patch(columnsUpdateURL({event_id: eventId, column_id: columnId}), data);
       await reload(day ?? undefined);
@@ -120,9 +126,15 @@ export function ManageApp({eventId}: ManageAppProps) {
     }
   };
 
-  const updateGapMinutes = async (gapMinutes: number) => {
+  const updateSettings = async (data: {
+    gap_minutes?: number;
+    snap_minutes?: number;
+    row_height_px?: number;
+    show_session_track?: boolean;
+    description_display?: BSDescriptionDisplay;
+  }) => {
     try {
-      await indicoAxios.patch(settingsUpdateURL({event_id: eventId}), {gap_minutes: gapMinutes});
+      await indicoAxios.patch(settingsUpdateURL({event_id: eventId}), data);
       await reload(day ?? undefined);
     } catch (error) {
       handleAxiosError(error);
@@ -133,7 +145,10 @@ export function ManageApp({eventId}: ManageAppProps) {
     startDay: string,
     startMinutes: number,
     endDay: string,
-    endMinutes: number
+    endMinutes: number,
+    clear: boolean,
+    excludeSessionIds: number[],
+    excludeTrackIds: number[]
   ) => {
     try {
       const {data} = await indicoAxios.post(autoscheduleURL({event_id: eventId}), {
@@ -141,9 +156,12 @@ export function ManageApp({eventId}: ManageAppProps) {
         start_minutes: startMinutes,
         end_day: endDay,
         end_minutes: endMinutes,
+        clear,
+        exclude_session_ids: excludeSessionIds,
+        exclude_track_ids: excludeTrackIds,
       });
       await reload(day ?? undefined);
-      return data as {unscheduled_count: number; unscheduled_titles: string[]};
+      return data as {cleared: boolean; unscheduled_count: number; unscheduled_titles: string[]};
     } catch (error) {
       handleAxiosError(error);
       return null;
@@ -191,6 +209,43 @@ export function ManageApp({eventId}: ManageAppProps) {
     }
   };
 
+  const createSessionBlock = async (data: {
+    session_id: number | null;
+    title: string | null;
+    start_minutes: number;
+    duration_minutes: number;
+    color: string | null;
+    column_ids: number[] | null;
+  }) => {
+    try {
+      await indicoAxios.post(sessionBlocksCreateURL({event_id: eventId}), {day, ...data});
+      await reload(day ?? undefined);
+    } catch (error) {
+      handleAxiosError(error);
+    }
+  };
+
+  const updateSessionBlock = async (
+    blockId: number,
+    data: {start_minutes?: number; duration_minutes?: number; color?: string; column_ids?: number[] | null}
+  ) => {
+    try {
+      await indicoAxios.patch(sessionBlocksUpdateURL({event_id: eventId, block_id: blockId}), {day, ...data});
+      await reload(day ?? undefined);
+    } catch (error) {
+      handleAxiosError(error);
+    }
+  };
+
+  const deleteSessionBlock = async (blockId: number) => {
+    try {
+      await indicoAxios.delete(sessionBlocksUpdateURL({event_id: eventId, block_id: blockId}));
+      await reload(day ?? undefined);
+    } catch (error) {
+      handleAxiosError(error);
+    }
+  };
+
   if (!gridData) {
     return <Loader active size="massive" inline="centered" />;
   }
@@ -216,18 +271,74 @@ export function ManageApp({eventId}: ManageAppProps) {
             onBlur={e => {
               const value = Number(e.target.value);
               if (!Number.isNaN(value) && value !== gridData.gap_minutes) {
-                updateGapMinutes(value);
+                updateSettings({gap_minutes: value});
               }
             }}
           />
         </label>
-        <AutoscheduleForm eventDays={gridData.event_days} currentDay={gridData.day} onRun={runAutoschedule} />
+        <label styleName="gap-setting">
+          <Translate>Snap to (min, 0 = off)</Translate>
+          <input
+            type="number"
+            min={0}
+            defaultValue={gridData.snap_minutes}
+            key={gridData.snap_minutes}
+            onBlur={e => {
+              const value = Number(e.target.value);
+              if (!Number.isNaN(value) && value !== gridData.snap_minutes) {
+                updateSettings({snap_minutes: value});
+              }
+            }}
+          />
+        </label>
+        <label styleName="gap-setting">
+          <Translate>Row height (px)</Translate>
+          <input
+            type="number"
+            min={20}
+            step={5}
+            defaultValue={gridData.row_height_px}
+            key={gridData.row_height_px}
+            onBlur={e => {
+              const value = Number(e.target.value);
+              if (!Number.isNaN(value) && value !== gridData.row_height_px) {
+                updateSettings({row_height_px: value});
+              }
+            }}
+          />
+        </label>
+        <Checkbox
+          toggle
+          label={Translate.string('Show session/track')}
+          checked={gridData.show_session_track}
+          onChange={(_e, {checked}) => updateSettings({show_session_track: !!checked})}
+        />
+        <label styleName="gap-setting">
+          <Translate>Description</Translate>
+          <select
+            value={gridData.description_display}
+            onChange={e => updateSettings({description_display: e.target.value as BSDescriptionDisplay})}
+          >
+            <option value="hidden">{Translate.string('Hidden')}</option>
+            <option value="truncated">{Translate.string('Truncated')}</option>
+            <option value="full">{Translate.string('Full')}</option>
+          </select>
+        </label>
+        <AutoscheduleForm
+          eventDays={gridData.event_days}
+          currentDay={gridData.day}
+          sessions={gridData.sessions}
+          tracks={gridData.tracks}
+          onRun={runAutoschedule}
+        />
+        <ExportButton eventId={eventId} day={gridData.day} />
         <FullscreenButton targetRef={containerRef} />
       </div>
       <div styleName="layout">
         <UnscheduledPanel
           eventId={eventId}
           contributions={gridData.unscheduled_contributions}
+          showSessionTrack={gridData.show_session_track}
           onUnschedule={unscheduleContribution}
         />
         <ScheduleGrid
@@ -242,6 +353,9 @@ export function ManageApp({eventId}: ManageAppProps) {
           onCreateSpanningBlock={createSpanningBlock}
           onUpdateSpanningBlock={updateSpanningBlock}
           onDeleteSpanningBlock={deleteSpanningBlock}
+          onCreateSessionBlock={createSessionBlock}
+          onUpdateSessionBlock={updateSessionBlock}
+          onDeleteSessionBlock={deleteSessionBlock}
         />
       </div>
     </div>
