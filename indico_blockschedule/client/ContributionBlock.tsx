@@ -68,13 +68,13 @@ export function ContributionBlock({
       )}
       <div styleName="title">{contribution.title}</div>
       <div styleName="people">{contribution.people.join(', ')}</div>
-      {contribution.description && <div styleName="description">{contribution.description}</div>}
       {showSessionTrack && (contribution.session_name || contribution.track_name) && (
         <div styleName="badges">
-          {contribution.session_name && <span styleName="badge">{contribution.session_name}</span>}
-          {contribution.track_name && <span styleName="badge">{contribution.track_name}</span>}
+          {contribution.session_name && <span styleName="badge badge-session">{contribution.session_name}</span>}
+          {contribution.track_name && <span styleName="badge badge-track">{contribution.track_name}</span>}
         </div>
       )}
+      {contribution.description && <div styleName="description">{contribution.description}</div>}
       {timeRange && <div styleName={isPreview ? 'time-range time-range-preview' : 'time-range'}>{timeRange}</div>}
     </>
   );

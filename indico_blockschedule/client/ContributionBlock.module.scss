@@ -40,19 +40,19 @@
   overflow-wrap: break-word;
 }
 
+// Normal document flow, not absolutely positioned: the block's own `overflow: hidden`
+// (and fixed, duration-proportional height) then clips these off first whenever there isn't
+// room for everything, instead of badges floating on top of (and obscuring) the author
+// name above them -- the author name always keeps its space, badges are the first to go.
 .badges {
-  position: absolute;
-  left: 4px;
-  bottom: 2px;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2em;
-  max-width: calc(100% - 4.5em);
+  gap: 0.3em;
+  margin-top: 0.2em;
 }
 
 .badge {
   padding: 0 0.4em;
-  background-color: #2a6f97;
   color: white;
   border-radius: 8px;
   font-size: 0.65em;
@@ -60,6 +60,15 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.badge-session {
+  background-color: #2a6f97;
+}
+
+.badge-track {
+  background-color: #8a4baf;
 }
 
 .description {
