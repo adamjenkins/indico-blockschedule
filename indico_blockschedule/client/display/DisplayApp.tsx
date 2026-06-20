@@ -7,12 +7,11 @@
 
 import gridDataURL from 'indico-url:plugin_blockschedule.display_grid_data';
 
+import {Translate} from 'indico/react/i18n';
+import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Checkbox, Dropdown, Loader} from 'semantic-ui-react';
-
-import {Translate} from 'indico/react/i18n';
-import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 
 import {ContributionBlock} from '../ContributionBlock';
 import {FullscreenButton} from '../FullscreenButton';

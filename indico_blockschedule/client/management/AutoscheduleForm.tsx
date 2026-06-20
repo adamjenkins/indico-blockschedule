@@ -5,10 +5,9 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
+import {Param, Translate} from 'indico/react/i18n';
 import React, {useState} from 'react';
 import {Button, Checkbox, Dropdown, Popup} from 'semantic-ui-react';
-
-import {Param, Translate} from 'indico/react/i18n';
 
 import {parseTimeToMinutes} from '../gridTime';
 import {BSSession, BSTrack} from '../types';

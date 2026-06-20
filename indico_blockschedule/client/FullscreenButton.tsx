@@ -5,10 +5,9 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
+import {Translate} from 'indico/react/i18n';
 import React, {useEffect, useState} from 'react';
 import {Icon} from 'semantic-ui-react';
-
-import {Translate} from 'indico/react/i18n';
 
 import './FullscreenButton.module.scss';
 

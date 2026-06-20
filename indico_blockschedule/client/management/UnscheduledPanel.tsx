@@ -5,9 +5,8 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-import React from 'react';
-
 import {Translate} from 'indico/react/i18n';
+import React from 'react';
 
 import {ContributionBlock} from '../ContributionBlock';
 import {BSContribution} from '../types';

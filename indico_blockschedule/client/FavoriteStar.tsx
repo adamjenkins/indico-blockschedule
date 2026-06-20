@@ -7,11 +7,10 @@
 
 import favoriteContributionURL from 'indico-url:contributions.favorite_contributions_api';
 
-import React, {useState} from 'react';
-import {Icon} from 'semantic-ui-react';
-
 import {Translate} from 'indico/react/i18n';
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
+import React, {useState} from 'react';
+import {Icon} from 'semantic-ui-react';
 
 import './FavoriteStar.module.scss';
 

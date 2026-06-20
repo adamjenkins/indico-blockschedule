@@ -122,6 +122,22 @@ npm ci
 python ../indico/bin/maintenance/build-assets.py plugin .
 ```
 
+`eslint`/`tsc` need a real Indico checkout too — `tsconfig.json` resolves
+it as `./indico-src` (a symlink to your real checkout works fine), and
+`.eslintrc.js` reads its path from an `.indico_source` file (plain text,
+the absolute path on one line) if present, falling back to introspecting
+the `indico` Python package otherwise. Keep both pointed at the same
+*nested* `./indico-src` location, not an arbitrary path elsewhere — CI
+checks out Indico into `./indico-src` for exactly this reason, and an
+ESLint resolver quirk around the `import/order` rule sorts the `indico/*`
+aliased imports differently depending on whether the target is reachable
+as a subdirectory of the project being linted or not:
+```bash
+ln -s /path/to/your/indico/checkout indico-src
+echo "$(pwd)/indico-src" > .indico_source
+```
+Both `indico-src` and `.indico_source` are gitignored — never commit them.
+
 See `TASKLIST.md` for the build plan, and `dev-env/` for a one-command
 local Postgres + redis setup (via podman) for manual click-through
 testing — `dev-env/README.md` covers that in detail, and

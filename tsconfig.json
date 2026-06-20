@@ -1,10 +1,10 @@
 {
-  "extends": "../../indico/tsconfig.json",
+  "extends": "./indico-src/tsconfig.json",
   "compilerOptions": {
-    "baseUrl": "../../indico"
+    "baseUrl": "./indico-src"
   },
   "include": [
-    "../../indico/indico/web/client/js/types",
+    "./indico-src/indico/web/client/js/types",
     "indico_blockschedule/client/**/*"
   ]
 }

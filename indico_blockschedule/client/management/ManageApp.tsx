@@ -18,12 +18,11 @@ import spanningBlocksCreateURL from 'indico-url:plugin_blockschedule.spanning_bl
 import spanningBlocksUpdateURL from 'indico-url:plugin_blockschedule.spanning_blocks_delete_update';
 import unscheduleURL from 'indico-url:plugin_blockschedule.unschedule';
 
+import {Translate} from 'indico/react/i18n';
+import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Checkbox, Dropdown, Loader} from 'semantic-ui-react';
-
-import {Translate} from 'indico/react/i18n';
-import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 
 import {FullscreenButton} from '../FullscreenButton';
 import {BSDescriptionDisplay, BSGridData} from '../types';

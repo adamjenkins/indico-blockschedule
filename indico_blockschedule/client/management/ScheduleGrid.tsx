@@ -5,10 +5,9 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
+import {Translate} from 'indico/react/i18n';
 import React, {useState} from 'react';
 import {Button, Checkbox, Dropdown, Icon, Input} from 'semantic-ui-react';
-
-import {Translate} from 'indico/react/i18n';
 
 import {paleBackground, readableTextColor} from '../colors';
 import {ContributionBlock} from '../ContributionBlock';

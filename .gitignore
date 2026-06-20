@@ -17,6 +17,11 @@ indico_blockschedule/static/dist/
 webpack-build-config.json
 url_map.json
 
+# A local Indico core checkout (or symlink to one), read by tsconfig.json's "extends" and
+# optionally pointed to by `.indico_source` for .eslintrc.js -- never the same on two machines.
+indico-src
+.indico_source
+
 # Editor/OS noise
 .DS_Store
 *.swp
