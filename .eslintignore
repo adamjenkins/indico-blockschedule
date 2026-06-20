@@ -1,3 +1,12 @@
 # Generated content
 indico_blockschedule/static/dist/
 node_modules/
+
+# A full Indico checkout, fetched by CI (and optionally by hand locally) purely so
+# `.eslintrc.js` has a real `.eslintrc.yml`/babel.config.js/node_modules to build this
+# plugin's own config from (see the `.indico_source` file). It is not itself part of this
+# plugin and must never be linted: ESLint applies its own nested `.eslintrc.yml` hierarchically
+# to anything under it, which independently declares the same plugins (e.g. `react-hooks`)
+# this config does, resolved against a different node_modules -- ESLint refuses to pick one
+# ("ESLint couldn't determine the plugin ... uniquely") and aborts entirely.
+indico-src/
