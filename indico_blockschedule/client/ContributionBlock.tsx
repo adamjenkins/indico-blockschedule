@@ -16,6 +16,8 @@ interface ContributionBlockProps {
   contribution: BSContribution;
   draggable?: boolean;
   href?: string;
+  /** Grey this block out: it is outside the current track filter, but its room is shown. */
+  dimmed?: boolean;
   showSessionTrack?: boolean;
   /** While this block is being dragged, the prospective start minute it would land on if
    * dropped right now -- overrides the displayed time range and highlights it, so the time
@@ -30,6 +32,7 @@ export function ContributionBlock({
   contribution,
   draggable,
   href,
+  dimmed,
   showSessionTrack = true,
   previewStartMinutes,
   onDragStart,
@@ -60,7 +63,7 @@ export function ContributionBlock({
     </>
   );
 
-  const className = 'contribution-block';
+  const className = ['contribution-block', dimmed ? 'dimmed' : ''].filter(Boolean).join(' ');
 
   if (href) {
     return (

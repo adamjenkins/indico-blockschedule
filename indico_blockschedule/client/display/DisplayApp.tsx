@@ -14,6 +14,8 @@ import ReactDOM from 'react-dom';
 import {Checkbox, Dropdown, Loader} from 'semantic-ui-react';
 
 import {ContributionBlock} from '../ContributionBlock';
+import {FilterBar} from '../FilterBar';
+import {applyFilters, BSFilters, parseFilters, syncFiltersToUrl} from '../filters';
 import {FullscreenButton} from '../FullscreenButton';
 import {buildSlots, durationToPx, GUTTER_PX, minutesToLabel, minutesToOffsetPx} from '../gridTime';
 import {BSGridData} from '../types';
@@ -55,6 +57,8 @@ interface DisplayAppProps {
 export function DisplayApp({eventId}: DisplayAppProps) {
   const [gridData, setGridData] = useState<BSGridData | null>(null);
   const [blackAndWhite, setBlackAndWhite] = useState(false);
+  // Seeded from the URL so a shared/bookmarked filtered view opens filtered.
+  const [filters, setFilters] = useState<BSFilters>(() => parseFilters(window.location.search));
   const containerRef = useRef<HTMLDivElement>(null);
 
   const load = async (day?: string) => {
@@ -74,6 +78,12 @@ export function DisplayApp({eventId}: DisplayAppProps) {
   if (!gridData) {
     return <Loader active size="massive" inline="centered" />;
   }
+
+  const {columns, isDimmed} = applyFilters(gridData, filters);
+  const updateFilters = (next: BSFilters) => {
+    setFilters(next);
+    syncFiltersToUrl(next);
+  };
 
   const slots = buildSlots(gridData.day_start_time, gridData.day_end_time, gridData.slot_minutes);
   const rowHeightPx = gridData.row_height_px;
@@ -96,6 +106,14 @@ export function DisplayApp({eventId}: DisplayAppProps) {
           checked={blackAndWhite}
           onChange={(_e, {checked}) => setBlackAndWhite(!!checked)}
         />
+        <FilterBar
+          columns={gridData.columns}
+          groups={gridData.groups}
+          tracks={gridData.tracks}
+          filters={filters}
+          onChange={updateFilters}
+          visibleCount={columns.length}
+        />
         <ExportButton eventId={eventId} day={gridData.day} />
         <PrintButton containerRef={containerRef} eventTitle={gridData.event_title} />
         <FullscreenButton targetRef={containerRef} />
@@ -103,7 +121,7 @@ export function DisplayApp({eventId}: DisplayAppProps) {
 
       <div styleName="header-row">
         <div styleName="corner" style={{width: GUTTER_PX}} />
-        {gridData.columns.map(column => (
+        {columns.map(column => (
           <div
             key={column.id}
             styleName="header-cell"
@@ -128,7 +146,7 @@ export function DisplayApp({eventId}: DisplayAppProps) {
           ))}
         </div>
 
-        {gridData.columns.map(column => (
+        {columns.map(column => (
           <div
             key={column.id}
             styleName="column-track"
@@ -156,6 +174,7 @@ export function DisplayApp({eventId}: DisplayAppProps) {
                   <ContributionBlock
                     contribution={contribution}
                     href={contribution.url}
+                    dimmed={isDimmed(contribution)}
                     showSessionTrack={gridData.show_session_track}
                     style={{height: '100%'}}
                   />
@@ -165,7 +184,7 @@ export function DisplayApp({eventId}: DisplayAppProps) {
               .filter(block => block.column_ids === null || block.column_ids.includes(column.id))
               .map(block => {
                 const spannedIds = block.column_ids ?? gridData.columns.map(c => c.id);
-                const firstSpannedColumn = gridData.columns.find(c => spannedIds.includes(c.id));
+                const firstSpannedColumn = columns.find(c => spannedIds.includes(c.id));
                 return (
                   <div
                     key={block.id}

@@ -32,6 +32,7 @@ export interface BSContribution {
   start_dt: string | null;
   url: string;
   session_name: string | null;
+  track_id: number | null;
   track_name: string | null;
   description: string | null;
 }
@@ -65,11 +66,19 @@ export interface BSTrack {
   title: string;
 }
 
+export interface BSGroup {
+  id: number;
+  title: string;
+  position: number;
+  column_ids: number[];
+}
+
 export interface BSGridData {
   day: string;
   event_days: string[];
   event_title: string;
   columns: BSColumn[];
+  groups: BSGroup[];
   roombooking_enabled: boolean;
   rooms: BSRoom[];
   sessions: BSSession[];

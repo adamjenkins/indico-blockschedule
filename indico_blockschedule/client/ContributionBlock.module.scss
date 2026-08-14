@@ -17,6 +17,13 @@
   text-decoration: none;
   color: inherit;
   cursor: grab;
+
+  // Outside the current track filter: still occupies its slot (so the room's
+  // real day stays legible on paper) but recedes behind the talks you asked for.
+  &.dimmed {
+    opacity: 0.35;
+    filter: grayscale(100%);
+  }
 }
 
 .title {
