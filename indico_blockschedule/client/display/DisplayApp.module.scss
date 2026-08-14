@@ -91,6 +91,15 @@
   gap: 2px;
 }
 
+// Both the header row's spacer and the body row's time gutter must keep their
+// full GUTTER_PX width. Without `flex: 0 0 auto` the default `flex-shrink: 1`
+// collapses them once the row overflows -- which it does as soon as there are
+// enough columns -- and since the `min-width: 120px` cells cannot shrink, the
+// whole header row slides left by the gutter width while the body stays put.
+.corner {
+  flex: 0 0 auto;
+}
+
 .time-gutter {
   flex: 0 0 auto;
 }
