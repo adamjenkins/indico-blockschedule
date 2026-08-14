@@ -26,11 +26,12 @@ from indico.modules.rb.models.rooms import Room
 from indico.util.spreadsheets import send_csv
 
 from indico_blockschedule.models.columns import BlockScheduleColumn
+from indico_blockschedule.models.groups import BlockScheduleGroup
 from indico_blockschedule.models.session_blocks import BlockScheduleSessionBlock
 from indico_blockschedule.util import (ScheduleOverlapError, assign_contribution_to_column, autoschedule,
                                        build_export_rows, build_export_sheets, clear_schedule, get_session_blocks,
                                        get_spanning_blocks, get_unscheduled_contributions, send_ods,
-                                       send_xlsx_multisheet, serialize_column, serialize_contribution,
+                                       send_xlsx_multisheet, serialize_column, serialize_contribution, serialize_group,
                                        serialize_session_block, serialize_spanning_block)
 from indico_blockschedule.views import WPDisplayBlockSchedule, WPManageBlockSchedule
 
@@ -98,6 +99,10 @@ def _grid_payload(event, day, user=None, *, full_day=False):
               .with_parent(event)
               .order_by(BlockScheduleColumn.position)
               .all())
+    groups = (BlockScheduleGroup.query
+             .filter_by(event_id=event.id)
+             .order_by(BlockScheduleGroup.position)
+             .all())
     scheduled = [c for c in event.contributions
                 if not c.is_deleted and c.timetable_entry is not None
                 and c.timetable_entry.start_dt.astimezone(event.tzinfo).date() == day]
@@ -118,6 +123,7 @@ def _grid_payload(event, day, user=None, *, full_day=False):
         'event_days': [d.isoformat() for d in event.iter_days()],
         'event_title': event.title,
         'columns': [serialize_column(c) for c in columns],
+        'groups': [serialize_group(g) for g in groups],
         'roombooking_enabled': config.ENABLE_ROOMBOOKING,
         'rooms': ([{'id': r.id, 'full_name': r.full_name} for r in Room.query.filter_by(is_deleted=False)]
                  if config.ENABLE_ROOMBOOKING else []),
@@ -244,6 +250,76 @@ class RHColumnReorder(RHBlockScheduleManageBase):
             columns_by_id[column_id].position = index + 1
         db.session.flush()
         return jsonify(columns=[serialize_column(columns_by_id[cid]) for cid in column_ids])
+
+
+def _resolve_columns(event, column_ids):
+    """Map ids to this event's columns, rejecting anything foreign.
+
+    Group membership is set wholesale rather than incrementally, so an id
+    belonging to another event would otherwise silently attach a column the
+    caller cannot even see.
+    """
+    columns = BlockScheduleColumn.query.filter(BlockScheduleColumn.event_id == event.id,
+                                               BlockScheduleColumn.id.in_(column_ids)).all()
+    if len(columns) != len(set(column_ids)):
+        raise BadRequest('column_ids must all belong to this event')
+    return columns
+
+
+class RHGroupCreate(RHBlockScheduleManageBase):
+    @use_kwargs({
+        'title': fields.Str(required=True),
+        'column_ids': fields.List(fields.Int(), load_default=list),
+    })
+    def _process_POST(self, title, column_ids):
+        title = title.strip()
+        if not title:
+            raise BadRequest('title is required')
+        if BlockScheduleGroup.query.filter_by(event_id=self.event.id, title=title).has_rows():
+            raise BadRequest('a group with that name already exists')
+        max_position = (db.session.query(db.func.max(BlockScheduleGroup.position))
+                        .filter(BlockScheduleGroup.event_id == self.event.id)
+                        .scalar())
+        group = BlockScheduleGroup(event=self.event, title=title, position=(max_position or 0) + 1)
+        group.columns = set(_resolve_columns(self.event, column_ids))
+        db.session.add(group)
+        db.session.flush()
+        return jsonify(serialize_group(group))
+
+
+class RHGroupDeleteUpdate(RHBlockScheduleManageBase):
+    def _process_args(self):
+        RHBlockScheduleManageBase._process_args(self)
+        self.group = (BlockScheduleGroup.query
+                      .filter_by(id=request.view_args['group_id'], event_id=self.event.id)
+                      .first_or_404())
+
+    @use_kwargs({
+        'title': fields.Str(load_default=None),
+        'column_ids': fields.List(fields.Int(), load_default=None),
+    })
+    def _process_PATCH(self, title, column_ids):
+        if title is not None:
+            title = title.strip()
+            if not title:
+                raise BadRequest('title cannot be empty')
+            clash = (BlockScheduleGroup.query
+                     .filter(BlockScheduleGroup.event_id == self.event.id,
+                             BlockScheduleGroup.title == title,
+                             BlockScheduleGroup.id != self.group.id)
+                     .has_rows())
+            if clash:
+                raise BadRequest('a group with that name already exists')
+            self.group.title = title
+        if column_ids is not None:
+            self.group.columns = set(_resolve_columns(self.event, column_ids))
+        db.session.flush()
+        return jsonify(serialize_group(self.group))
+
+    def _process_DELETE(self):
+        db.session.delete(self.group)
+        db.session.flush()
+        return jsonify(success=True)
 
 
 class RHScheduleContribution(RHBlockScheduleManageBase):

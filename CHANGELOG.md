@@ -5,6 +5,23 @@ All notable changes to the Block Schedule plugin are documented here.
 ## [Unreleased]
 
 ### Added
+- **Room groups and filtering**, so a wide schedule can be viewed and printed
+  a slice at a time instead of as one unprintable sheet. Rooms can be gathered
+  into named groups ("9th Floor", "Plenary Halls") from a new "Room groups"
+  dialog in the management toolbar; a room may belong to any number of groups,
+  and groups may overlap freely. The event's tracks are offered as groups too,
+  automatically — they are read live from the event rather than copied, so they
+  cannot fall out of step with it.
+- Both the management and display grids gained a filter bar that narrows the
+  view to any combination of groups and individual rooms, and to any set of
+  tracks. A track filter keeps every room that hosts at least one of the
+  selected talks and greys out that room's other talks rather than hiding them,
+  so the printed sheet still shows when a room is occupied; rooms with no
+  matching talk drop out entirely.
+- Filters are written into the page URL (`?groups=…&rooms=…&tracks=…`), so a
+  filtered view — "the 9th floor schedule" — can be bookmarked, handed to
+  someone else, or reprinted identically later. The filter controls themselves
+  are hidden when printing.
 - Spreadsheet export of the schedule (CSV, ODS, Excel) from both the
   management and display toolbars. XLSX/ODS exports carry a second
   "Schedule Grid" sheet laid out like the visual grid itself — one merged,

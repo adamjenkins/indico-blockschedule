@@ -12,7 +12,7 @@ import {Button, Checkbox, Dropdown, Icon, Input} from 'semantic-ui-react';
 import {paleBackground, readableTextColor} from '../colors';
 import {ContributionBlock} from '../ContributionBlock';
 import {buildSlots, durationToPx, GUTTER_PX, minutesToLabel, minutesToOffsetPx, parseTimeToMinutes} from '../gridTime';
-import {BSGridData} from '../types';
+import {BSContribution, BSGridData} from '../types';
 
 import './ScheduleGrid.module.scss';
 
@@ -62,6 +62,8 @@ interface UpdateSessionBlockData {
 interface ScheduleGridProps {
   eventId: number;
   gridData: BSGridData;
+  /** Grey out talks outside the active track filter (their rooms are still shown). */
+  isDimmed?: (contribution: BSContribution) => boolean;
   onSchedule: (contributionId: number, columnId: number, startMinutes: number) => void;
   onUnschedule: (contributionId: number) => void;
   onCreateColumn: (roomId: number | null, label: string, color: string | null) => void;
@@ -527,6 +529,7 @@ function SessionBlockBar({
 export function ScheduleGrid({
   eventId,
   gridData,
+  isDimmed,
   onSchedule,
   onUnschedule,
   onCreateColumn,
@@ -736,6 +739,7 @@ export function ScheduleGrid({
                   <ContributionBlock
                     contribution={contribution}
                     eventId={eventId}
+                    dimmed={isDimmed?.(contribution)}
                     draggable
                     showSessionTrack={gridData.show_session_track}
                     previewStartMinutes={

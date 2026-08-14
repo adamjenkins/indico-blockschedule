@@ -18,8 +18,13 @@
   color: inherit;
   cursor: grab;
 
+  // Receded, for either reason: outside the active track filter, or not a
+  // favourite while "highlight my timetable" is on. It keeps its slot -- the
+  // room's real day stays legible, on screen and on paper -- but drops back
+  // behind the talks that were asked for.
   &.dimmed {
     opacity: 0.35;
+    filter: grayscale(100%);
   }
 
   &.starred {

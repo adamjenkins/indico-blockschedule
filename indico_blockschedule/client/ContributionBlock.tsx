@@ -21,6 +21,8 @@ interface ContributionBlockProps {
   /** Dim this block unless it's starred (e.g. the display page's "highlight my timetable" toggle). */
   highlightStarred?: boolean;
   showFavorite?: boolean;
+  /** Grey this block out: it is outside the current track filter, but its room is shown. */
+  dimmed?: boolean;
   showSessionTrack?: boolean;
   /** While this block is being dragged, the prospective start minute it would land on if
    * dropped right now -- overrides the displayed time range and highlights it, so the time
@@ -38,6 +40,7 @@ export function ContributionBlock({
   href,
   highlightStarred,
   showFavorite = true,
+  dimmed,
   showSessionTrack = true,
   previewStartMinutes,
   onDragStart,
@@ -79,8 +82,11 @@ export function ContributionBlock({
     </>
   );
 
-  const dimmed = highlightStarred && !starred;
-  const className = ['contribution-block', dimmed ? 'dimmed' : '', starred ? 'starred' : '']
+  // Two independent reasons to recede: outside the active track filter, or not
+  // one of the viewer's favourites while "highlight my timetable" is on. Either
+  // is enough, and they compose without needing to know about each other.
+  const isDimmed = dimmed || (highlightStarred && !starred);
+  const className = ['contribution-block', isDimmed ? 'dimmed' : '', starred ? 'starred' : '']
     .filter(Boolean)
     .join(' ');
 

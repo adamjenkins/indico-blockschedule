@@ -1,0 +1,34 @@
+// This file is part of the Block Schedule plugin for Indico.
+// Copyright (C) 2026 Adam Jenkins
+//
+// The Block Schedule plugin is free software; you can redistribute
+// it and/or modify it under the terms of the MIT License;
+// see the LICENSE file for more details.
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+
+.filter-dropdown {
+  // Wide enough to show a couple of selections without the bar jumping about
+  // as rooms are ticked, but still able to shrink on a narrow toolbar.
+  min-width: 14em !important;
+  max-width: 28em;
+}
+
+.summary {
+  color: #777;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+// The filter controls are a screen-only affordance: a printed sheet should
+// show the filtered grid, not the machinery that produced it.
+@media print {
+  .filter-bar {
+    display: none;
+  }
+}

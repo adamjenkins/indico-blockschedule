@@ -33,6 +33,15 @@ def serialize_column(column):
     }
 
 
+def serialize_group(group):
+    return {
+        'id': group.id,
+        'title': group.title,
+        'position': group.position,
+        'column_ids': sorted(c.id for c in group.columns),
+    }
+
+
 def _contribution_people(contribution):
     seen = set()
     names = []
@@ -71,6 +80,7 @@ def serialize_contribution(contribution, user=None, description_display='hidden'
         'url': url_for('contributions.display_contribution', contribution),
         'is_starred': bool(user and contribution in user.favorite_contributions),
         'session_name': session_.title if session_ else None,
+        'track_id': contribution.track_id,
         'track_name': contribution.track.title if contribution.track else None,
         'description': _description_preview(contribution, description_display),
     }

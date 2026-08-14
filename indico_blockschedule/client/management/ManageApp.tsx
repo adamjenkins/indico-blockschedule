@@ -24,11 +24,14 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Checkbox, Dropdown, Loader} from 'semantic-ui-react';
 
+import {FilterBar} from '../FilterBar';
+import {applyFilters, BSFilters, parseFilters, syncFiltersToUrl} from '../filters';
 import {FullscreenButton} from '../FullscreenButton';
 import {BSDescriptionDisplay, BSGridData} from '../types';
 
 import {AutoscheduleForm} from './AutoscheduleForm';
 import {ExportButton} from './ExportButton';
+import {GroupManager} from './GroupManager';
 import {ScheduleGrid} from './ScheduleGrid';
 import {UnscheduledPanel} from './UnscheduledPanel';
 
@@ -41,6 +44,7 @@ interface ManageAppProps {
 export function ManageApp({eventId}: ManageAppProps) {
   const [gridData, setGridData] = useState<BSGridData | null>(null);
   const [day, setDay] = useState<string | null>(null);
+  const [filters, setFilters] = useState<BSFilters>(() => parseFilters(window.location.search));
   const containerRef = useRef<HTMLDivElement>(null);
 
   const reload = useCallback(
@@ -117,8 +121,15 @@ export function ManageApp({eventId}: ManageAppProps) {
   };
 
   const reorderColumns = async (columnIds: number[]) => {
+    // `columnIds` covers only the visible columns while a filter is active.
+    // Hidden columns keep their slots; the visible ones are re-seated into the
+    // slots they already occupied, in their new relative order.
+    const fullOrder = gridData ? gridData.columns.map(c => c.id) : columnIds;
+    const visible = new Set(columnIds);
+    let next = 0;
+    const merged = fullOrder.map(id => (visible.has(id) ? columnIds[next++] : id));
     try {
-      await indicoAxios.post(columnsReorderURL({event_id: eventId}), {column_ids: columnIds});
+      await indicoAxios.post(columnsReorderURL({event_id: eventId}), {column_ids: merged});
       await reload(day ?? undefined);
     } catch (error) {
       handleAxiosError(error);
@@ -249,6 +260,11 @@ export function ManageApp({eventId}: ManageAppProps) {
     return <Loader active size="massive" inline="centered" />;
   }
 
+  // The same filtering the display page uses, so what you arrange here is what
+  // prints there: rooms narrowed to the chosen groups/rooms, and talks outside
+  // the chosen tracks greyed out rather than removed.
+  const {columns: visibleColumns, isDimmed} = applyFilters(gridData, filters);
+
   return (
     <div styleName="manage-app" ref={containerRef}>
       <div styleName="toolbar">
@@ -323,6 +339,23 @@ export function ManageApp({eventId}: ManageAppProps) {
             <option value="full">{Translate.string('Full')}</option>
           </select>
         </label>
+        <GroupManager
+          eventId={eventId}
+          columns={gridData.columns}
+          groups={gridData.groups}
+          onChanged={() => reload(day ?? undefined)}
+        />
+        <FilterBar
+          columns={gridData.columns}
+          groups={gridData.groups}
+          tracks={gridData.tracks}
+          filters={filters}
+          onChange={next => {
+            setFilters(next);
+            syncFiltersToUrl(next);
+          }}
+          visibleCount={visibleColumns.length}
+        />
         <AutoscheduleForm
           eventDays={gridData.event_days}
           currentDay={gridData.day}
@@ -342,7 +375,8 @@ export function ManageApp({eventId}: ManageAppProps) {
         />
         <ScheduleGrid
           eventId={eventId}
-          gridData={gridData}
+          gridData={{...gridData, columns: visibleColumns}}
+          isDimmed={isDimmed}
           onSchedule={scheduleContribution}
           onUnschedule={unscheduleContribution}
           onCreateColumn={createColumn}

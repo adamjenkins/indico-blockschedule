@@ -20,6 +20,14 @@ down the rows, rooms run across the columns.
 - The public display page links each scheduled block straight to its
   contribution page, and has a toggle to highlight the viewer's starred
   contributions while dimming the rest.
+- Rooms can be gathered into named groups (by floor, building, or any other
+  useful set), and a room can be in several groups at once. Both grids can then
+  be narrowed to any combination of groups, individual rooms, and tracks — which
+  is what makes a 30-room schedule printable, one floor or one track at a time.
+  Tracks are offered as groups automatically. Filtering by track keeps the rooms
+  that host those talks and greys out the rest of each room's programme, so the
+  sheet still shows when a room is busy. The current filter lives in the URL, so
+  a particular view can be bookmarked, shared, or reprinted exactly.
 - Both the management and display grids have a fullscreen toggle.
 - Columns can be themed with a color (saturated on the header, a pale
   tint across the column body) and reordered by dragging one column

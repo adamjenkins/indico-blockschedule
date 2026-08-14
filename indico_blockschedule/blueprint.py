@@ -8,11 +8,11 @@
 from indico.core.plugins import IndicoPluginBlueprint
 
 from indico_blockschedule.controllers import (RHAutoSchedule, RHColumnCreate, RHColumnDeleteUpdate, RHColumnReorder,
-                                              RHDisplayBlockSchedule, RHDisplayExport, RHDisplayGridData,
-                                              RHManageBlockSchedule, RHManageExport, RHManageGridData,
-                                              RHScheduleContribution, RHSessionBlockCreate, RHSessionBlockDeleteUpdate,
-                                              RHSettingsUpdate, RHSpanningBlockCreate, RHSpanningBlockDeleteUpdate,
-                                              RHUnscheduleContribution)
+                                              RHDisplayBlockSchedule, RHDisplayExport, RHDisplayGridData, RHGroupCreate,
+                                              RHGroupDeleteUpdate, RHManageBlockSchedule, RHManageExport,
+                                              RHManageGridData, RHScheduleContribution, RHSessionBlockCreate,
+                                              RHSessionBlockDeleteUpdate, RHSettingsUpdate, RHSpanningBlockCreate,
+                                              RHSpanningBlockDeleteUpdate, RHUnscheduleContribution)
 
 
 blueprint = IndicoPluginBlueprint('blockschedule', __name__)
@@ -23,6 +23,10 @@ blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/columns', 'c
                        methods=('POST',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/columns/<int:column_id>',
                        'columns_delete_update', RHColumnDeleteUpdate, methods=('PATCH', 'DELETE'))
+blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/groups', 'groups_create', RHGroupCreate,
+                       methods=('POST',))
+blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/groups/<int:group_id>',
+                       'groups_delete_update', RHGroupDeleteUpdate, methods=('PATCH', 'DELETE'))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/columns/reorder', 'columns_reorder',
                        RHColumnReorder, methods=('POST',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/schedule', 'schedule', RHScheduleContribution,

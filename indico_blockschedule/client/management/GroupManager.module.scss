@@ -1,0 +1,32 @@
+// This file is part of the Block Schedule plugin for Indico.
+// Copyright (C) 2026 Adam Jenkins
+//
+// The Block Schedule plugin is free software; you can redistribute
+// it and/or modify it under the terms of the MIT License;
+// see the LICENSE file for more details.
+
+.hint {
+  color: #777;
+  margin-bottom: 1em;
+}
+
+.empty {
+  color: #999;
+  font-style: italic;
+}
+
+.group-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.6em;
+}
+
+.group-title {
+  flex: 0 0 12em;
+}
+
+.group-columns {
+  flex: 1;
+  min-width: 0;
+}
