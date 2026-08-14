@@ -1,0 +1,143 @@
+name: Release
+
+# Builds the plugin's frontend assets and packages them INTO the wheel, then
+# attaches that wheel to the GitHub Release for the tag. The point is that
+# whoever installs it needs no Node, no Indico source checkout and no build
+# toolchain -- just `pip install <url>`. See COMPATIBILITY-3.3.12.md and the
+# installation guide's "route A".
+#
+# Triggered by pushing a tag (e.g. `git tag v0.1.0-3.3.12 && git push --tags`),
+# or manually from the Actions tab for a dry run that builds without publishing.
+
+env:
+  PYTHON_VERSION: '3.12.11'
+  NODE_VERSION: '22.x'
+  # Assets are compiled against core's client code and URL map, so a wheel is
+  # only valid for the Indico version it was built against. Keep this in step
+  # with ci.yml on this branch.
+  INDICO_VERSION: 'v3.3.12'
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write        # required to create the release and upload the wheel
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install system dependencies
+        run: sudo apt-get install postgresql-client libpq-dev
+
+      - name: Create virtualenv
+        run: uv venv --python ${{ env.PYTHON_VERSION }} --seed .venv
+
+      - name: Activate virtualenv for later steps
+        run: |
+          echo "VIRTUAL_ENV=$(pwd)/.venv" >> $GITHUB_ENV
+          echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
+
+      # build-assets.py imports Indico to generate the URL map, so Indico has to
+      # be installed -- not merely checked out.
+      - name: Install Indico
+        run: |
+          uv pip install babel
+          uv pip install "indico[dev] @ git+https://github.com/indico/indico.git@${{ env.INDICO_VERSION }}"
+
+      - name: Install plugin
+        run: uv pip install -e .
+
+      - name: Install node dependencies
+        run: npm ci
+
+      # `build-assets.py` and the webpack config are top-level files in the Indico
+      # repo, not part of the `indico` package -- installing Indico is not enough.
+      - name: Checkout Indico source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: indico/indico
+          ref: ${{ env.INDICO_VERSION }}
+          path: indico-src
+          persist-credentials: false
+
+      - name: Install Indico node dependencies
+        run: npm ci
+        working-directory: indico-src
+
+      - name: Build webpack assets
+        run: python bin/maintenance/build-assets.py plugin "$GITHUB_WORKSPACE"
+        working-directory: indico-src
+
+      - name: Build the wheel
+        run: uv build --wheel
+
+      # A wheel without the compiled bundles installs cleanly and then serves a
+      # broken page, so fail here rather than publish one.
+      - name: Verify the wheel carries the built assets
+        run: |
+          wheel=$(ls dist/*.whl)
+          count=$(python -m zipfile -l "$wheel" | grep -c 'static/dist' || true)
+          echo "$wheel contains $count asset files"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::wheel contains no static/dist files - the asset build did not take effect"
+            exit 1
+          fi
+
+      - name: Upload the wheel as a workflow artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: wheel
+          path: dist/*.whl
+
+      - name: Publish to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          notes=$(cat <<EOF
+          Built against **Indico ${INDICO_VERSION}**. The wheel below already contains the
+          compiled frontend assets, so the target server needs no Node.js and no Indico
+          source checkout.
+
+          \`\`\`bash
+          pip install https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}/$(basename dist/*.whl)
+          indico db --plugin blockschedule upgrade
+          \`\`\`
+
+          Add \`blockschedule\` to \`PLUGINS\` in \`indico.conf\` and restart Indico.
+          Assets are compiled against a specific core version - do not install this wheel
+          on a different Indico release. See COMPATIBILITY-3.3.12.md.
+          EOF
+          )
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/*.whl --clobber
+          else
+            gh release create "$tag" dist/*.whl --title "$tag" --notes "$notes"
+          fi
