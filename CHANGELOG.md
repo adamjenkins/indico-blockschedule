@@ -8,6 +8,8 @@ All notable changes to the Block Schedule plugin are documented here.
 
 ## [Unreleased]
 
+## [0.1.1+indico3.3.12] — 2026-08-14
+
 ### Removed
 - **Contribution favouriting**, for Indico 3.3.12 compatibility: the star on
   each block, the display page's "Highlight my timetable" toggle, and the
