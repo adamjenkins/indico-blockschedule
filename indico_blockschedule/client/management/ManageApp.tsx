@@ -335,13 +335,11 @@ export function ManageApp({eventId}: ManageAppProps) {
       </div>
       <div styleName="layout">
         <UnscheduledPanel
-          eventId={eventId}
           contributions={gridData.unscheduled_contributions}
           showSessionTrack={gridData.show_session_track}
           onUnschedule={unscheduleContribution}
         />
         <ScheduleGrid
-          eventId={eventId}
           gridData={gridData}
           onSchedule={scheduleContribution}
           onUnschedule={unscheduleContribution}

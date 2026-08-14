@@ -55,7 +55,7 @@ def _description_preview(contribution, mode):
     return text
 
 
-def serialize_contribution(contribution, user=None, description_display='hidden'):
+def serialize_contribution(contribution, description_display='hidden'):
     entry = contribution.timetable_entry
     start_local = entry.start_dt.astimezone(contribution.event.tzinfo) if entry else None
     assignment = contribution.blockschedule_assignment
@@ -69,7 +69,6 @@ def serialize_contribution(contribution, user=None, description_display='hidden'
         'start_minutes': start_local.hour * 60 + start_local.minute if start_local else None,
         'start_dt': entry.start_dt.isoformat() if entry else None,
         'url': url_for('contributions.display_contribution', contribution),
-        'is_starred': bool(user and contribution in user.favorite_contributions),
         'session_name': session_.title if session_ else None,
         'track_name': contribution.track.title if contribution.track else None,
         'description': _description_preview(contribution, description_display),

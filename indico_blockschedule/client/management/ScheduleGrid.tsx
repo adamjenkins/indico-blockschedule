@@ -60,7 +60,6 @@ interface UpdateSessionBlockData {
 }
 
 interface ScheduleGridProps {
-  eventId: number;
   gridData: BSGridData;
   onSchedule: (contributionId: number, columnId: number, startMinutes: number) => void;
   onUnschedule: (contributionId: number) => void;
@@ -525,7 +524,6 @@ function SessionBlockBar({
 }
 
 export function ScheduleGrid({
-  eventId,
   gridData,
   onSchedule,
   onUnschedule,
@@ -735,7 +733,6 @@ export function ScheduleGrid({
                 >
                   <ContributionBlock
                     contribution={contribution}
-                    eventId={eventId}
                     draggable
                     showSessionTrack={gridData.show_session_track}
                     previewStartMinutes={

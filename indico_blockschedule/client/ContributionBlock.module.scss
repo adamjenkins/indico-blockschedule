@@ -17,15 +17,6 @@
   text-decoration: none;
   color: inherit;
   cursor: grab;
-
-  &.dimmed {
-    opacity: 0.35;
-  }
-
-  &.starred {
-    border-color: #f0ad4e;
-    background-color: #fdf3e3;
-  }
 }
 
 .title {

@@ -47,18 +47,9 @@ def test_unscheduled_contributions_excludes_scheduled(dummy_event, dummy_contrib
 
 
 @pytest.mark.usefixtures('db')
-def test_serialize_contribution_not_starred_by_default(dummy_contribution, dummy_user):
-    data = serialize_contribution(dummy_contribution, dummy_user)
-    assert data['is_starred'] is False
+def test_serialize_contribution_basic(dummy_contribution):
+    data = serialize_contribution(dummy_contribution)
     assert data['title'] == dummy_contribution.title
-
-
-@pytest.mark.usefixtures('db')
-def test_serialize_contribution_starred(dummy_contribution, dummy_user):
-    dummy_user.favorite_contributions.add(dummy_contribution)
-    db.session.flush()
-    data = serialize_contribution(dummy_contribution, dummy_user)
-    assert data['is_starred'] is True
 
 
 @pytest.mark.usefixtures('db')

@@ -2,7 +2,21 @@
 
 All notable changes to the Block Schedule plugin are documented here.
 
+> This is the `release/indico-3.3.12` branch. Entries below describe the
+> plugin as a whole; see **Removed** for what this branch drops relative to
+> `main`.
+
 ## [Unreleased]
+
+### Removed
+- **Contribution favouriting**, for Indico 3.3.12 compatibility: the star on
+  each block, the display page's "Highlight my timetable" toggle, and the
+  `is_starred` field in the grid payload. It relied on
+  `User.favorite_contributions` and the `contributions.favorite_contributions_api`
+  endpoint, both added to Indico core after 3.3.12 — on 3.3.12 it broke the
+  grid-data endpoint at runtime *and* the webpack build. Full detail and the
+  file-by-file list: [COMPATIBILITY-3.3.12.md](COMPATIBILITY-3.3.12.md).
+  Users on Indico 3.3.13+ should use `main`, which keeps the feature.
 
 ### Added
 - Spreadsheet export of the schedule (CSV, ODS, Excel) from both the
@@ -107,8 +121,7 @@ All notable changes to the Block Schedule plugin are documented here.
   contributions panel onto the grid, with reschedule-by-dragging and
   inline-editable column headers.
 - Public display page: read-only grid where each block links to its
-  contribution page, with a toggle to highlight the viewer's starred
-  ("my timetable") contributions and dim the rest.
+  contribution page.
 - Columns work with or without the Room Booking module: if it's enabled,
   a column can be linked to an existing room (used to prefill the column
   name); either way, the column always has its own editable text label,
@@ -117,9 +130,6 @@ All notable changes to the Block Schedule plugin are documented here.
 - Block height is proportional to the contribution's actual duration
   (not rounded to the grid's slot size), and each scheduled block shows
   its start–end time in the bottom-right corner.
-- A star icon on every block lets the viewer favourite/unfavourite the
-  contribution directly from the grid (reuses Indico's existing
-  "add to my timetable" favorites, no separate state).
 - A fullscreen toggle for both the management and display grids.
 - Scheduling writes into Indico's real `TimetableEntry` data, so exports,
   the API, and the core timetable stay consistent with what's shown here.

@@ -14,13 +14,12 @@ import {BSContribution} from '../types';
 import './UnscheduledPanel.module.scss';
 
 interface UnscheduledPanelProps {
-  eventId: number;
   contributions: BSContribution[];
   showSessionTrack: boolean;
   onUnschedule: (contributionId: number) => void;
 }
 
-export function UnscheduledPanel({eventId, contributions, showSessionTrack, onUnschedule}: UnscheduledPanelProps) {
+export function UnscheduledPanel({contributions, showSessionTrack, onUnschedule}: UnscheduledPanelProps) {
   const onDragStart = (event: React.DragEvent, contribution: BSContribution) => {
     event.dataTransfer.setData('text/plain', String(contribution.id));
   };
@@ -47,7 +46,6 @@ export function UnscheduledPanel({eventId, contributions, showSessionTrack, onUn
         <ContributionBlock
           key={contribution.id}
           contribution={contribution}
-          eventId={eventId}
           draggable
           showSessionTrack={showSessionTrack}
           onDragStart={onDragStart}

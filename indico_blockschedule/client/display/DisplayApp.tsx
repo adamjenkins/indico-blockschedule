@@ -50,12 +50,10 @@ function readableTextColor(hex: string): string {
 
 interface DisplayAppProps {
   eventId: number;
-  loggedIn: boolean;
 }
 
-export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
+export function DisplayApp({eventId}: DisplayAppProps) {
   const [gridData, setGridData] = useState<BSGridData | null>(null);
-  const [highlightStarred, setHighlightStarred] = useState(false);
   const [blackAndWhite, setBlackAndWhite] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -90,14 +88,6 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
             value={gridData.day}
             options={gridData.event_days.map(d => ({key: d, value: d, text: d}))}
             onChange={(_e, {value}) => load(value as string)}
-          />
-        )}
-        {loggedIn && (
-          <Checkbox
-            toggle
-            label={Translate.string('Highlight my timetable')}
-            checked={highlightStarred}
-            onChange={(_e, {checked}) => setHighlightStarred(!!checked)}
           />
         )}
         <Checkbox
@@ -165,10 +155,7 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
                 >
                   <ContributionBlock
                     contribution={contribution}
-                    eventId={eventId}
                     href={contribution.url}
-                    highlightStarred={highlightStarred}
-                    showFavorite={loggedIn}
                     showSessionTrack={gridData.show_session_track}
                     style={{height: '100%'}}
                   />
@@ -224,8 +211,7 @@ customElements.define(
   class extends HTMLElement {
     connectedCallback() {
       const eventId = JSON.parse(this.getAttribute('event-id') ?? '0');
-      const loggedIn = JSON.parse(this.getAttribute('logged-in') ?? 'false');
-      ReactDOM.render(<DisplayApp eventId={eventId} loggedIn={loggedIn} />, this);
+      ReactDOM.render(<DisplayApp eventId={eventId} />, this);
     }
   }
 );

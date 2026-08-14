@@ -5,9 +5,8 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-import React, {useEffect, useState} from 'react';
+import React from 'react';
 
-import {FavoriteStar} from './FavoriteStar';
 import {minutesToLabel} from './gridTime';
 import {BSContribution} from './types';
 
@@ -15,12 +14,8 @@ import './ContributionBlock.module.scss';
 
 interface ContributionBlockProps {
   contribution: BSContribution;
-  eventId: number;
   draggable?: boolean;
   href?: string;
-  /** Dim this block unless it's starred (e.g. the display page's "highlight my timetable" toggle). */
-  highlightStarred?: boolean;
-  showFavorite?: boolean;
   showSessionTrack?: boolean;
   /** While this block is being dragged, the prospective start minute it would land on if
    * dropped right now -- overrides the displayed time range and highlights it, so the time
@@ -33,20 +28,14 @@ interface ContributionBlockProps {
 
 export function ContributionBlock({
   contribution,
-  eventId,
   draggable,
   href,
-  highlightStarred,
-  showFavorite = true,
   showSessionTrack = true,
   previewStartMinutes,
   onDragStart,
   onDragEnd,
   style,
 }: ContributionBlockProps) {
-  const [starred, setStarred] = useState(contribution.is_starred);
-  useEffect(() => setStarred(contribution.is_starred), [contribution.is_starred]);
-
   const displayedStartMinutes = previewStartMinutes ?? contribution.start_minutes;
   const timeRange =
     displayedStartMinutes !== null && displayedStartMinutes !== undefined
@@ -58,14 +47,6 @@ export function ContributionBlock({
 
   const content = (
     <>
-      {showFavorite && (
-        <FavoriteStar
-          contributionId={contribution.id}
-          eventId={eventId}
-          starred={starred}
-          onChange={setStarred}
-        />
-      )}
       <div styleName="title">{contribution.title}</div>
       <div styleName="people">{contribution.people.join(', ')}</div>
       {showSessionTrack && (contribution.session_name || contribution.track_name) && (
@@ -79,10 +60,7 @@ export function ContributionBlock({
     </>
   );
 
-  const dimmed = highlightStarred && !starred;
-  const className = ['contribution-block', dimmed ? 'dimmed' : '', starred ? 'starred' : '']
-    .filter(Boolean)
-    .join(' ');
+  const className = 'contribution-block';
 
   if (href) {
     return (

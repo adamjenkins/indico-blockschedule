@@ -31,7 +31,6 @@ export interface BSContribution {
   start_minutes: number | null;
   start_dt: string | null;
   url: string;
-  is_starred: boolean;
   session_name: string | null;
   track_name: string | null;
   description: string | null;

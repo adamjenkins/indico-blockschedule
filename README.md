@@ -3,6 +3,11 @@
 A simpler, grid-based alternative timetable for Indico events: time runs
 down the rows, rooms run across the columns.
 
+> **Indico 3.3.12 compatibility branch.** This is the `release/indico-3.3.12`
+> branch, for sites still on Indico 3.3.12. It is the `main` feature set
+> minus contribution favouriting, which needs an API added after 3.3.12.
+> On Indico 3.3.13+ use `main` instead — see [COMPATIBILITY-3.3.12.md](COMPATIBILITY-3.3.12.md).
+
 - Event managers schedule contributions by dragging them from an
   "unscheduled" panel onto the grid, and reschedule them later the same
   way. Block height is proportional to each contribution's actual
@@ -13,13 +18,8 @@ down the rows, rooms run across the columns.
   prefill its name); either way every column has its own editable text
   label, and that's what's shown as the column header and on a scheduled
   contribution's own page — not the official room name.
-- A star icon on every block lets anyone favourite/unfavourite the
-  contribution directly from the grid, without visiting the contribution
-  page (this is the same "add to my timetable" favorite used elsewhere in
-  Indico).
 - The public display page links each scheduled block straight to its
-  contribution page, and has a toggle to highlight the viewer's starred
-  contributions while dimming the rest.
+  contribution page.
 - Both the management and display grids have a fullscreen toggle.
 - Columns can be themed with a color (saturated on the header, a pale
   tint across the column body) and reordered by dragging one column

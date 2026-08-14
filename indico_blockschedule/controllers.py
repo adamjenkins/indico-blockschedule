@@ -8,7 +8,7 @@
 import re
 from datetime import UTC, datetime, time, timedelta
 
-from flask import jsonify, request, session
+from flask import jsonify, request
 from webargs import fields
 from webargs.flaskparser import use_kwargs
 from werkzeug.exceptions import BadRequest
@@ -92,7 +92,7 @@ def _day_bounds(scheduled, spanning_blocks, slot_minutes, settings):
     return _minutes_to_hhmm(start), _minutes_to_hhmm(end)
 
 
-def _grid_payload(event, day, user=None, *, full_day=False):
+def _grid_payload(event, day, *, full_day=False):
     from indico_blockschedule.plugin import BlockschedulePlugin
     columns = (BlockScheduleColumn.query
               .with_parent(event)
@@ -106,7 +106,7 @@ def _grid_payload(event, day, user=None, *, full_day=False):
     spanning_blocks = get_spanning_blocks(event, day)
     session_blocks = get_session_blocks(event, day)
     description_display = settings['description_display']
-    serialized_scheduled = [serialize_contribution(c, user, description_display) for c in scheduled]
+    serialized_scheduled = [serialize_contribution(c, description_display) for c in scheduled]
     serialized_spanning_blocks = [serialize_spanning_block(e) for e in spanning_blocks]
     if full_day:
         day_start_time, day_end_time = '00:00', '24:00'
@@ -125,7 +125,7 @@ def _grid_payload(event, day, user=None, *, full_day=False):
                     for s in event.sessions if not s.is_deleted],
         'tracks': [{'id': t.id, 'title': t.title} for t in event.tracks],
         'scheduled_contributions': serialized_scheduled,
-        'unscheduled_contributions': [serialize_contribution(c, user, description_display) for c in unscheduled],
+        'unscheduled_contributions': [serialize_contribution(c, description_display) for c in unscheduled],
         'spanning_blocks': serialized_spanning_blocks,
         'session_blocks': [serialize_session_block(b) for b in session_blocks],
         'slot_minutes': settings['slot_minutes'],
@@ -153,7 +153,7 @@ class RHManageBlockSchedule(RHBlockScheduleManageBase):
 class RHManageGridData(RHBlockScheduleManageBase):
     def _process(self):
         day = _event_day(self.event, request.args.get('day'))
-        return jsonify(_grid_payload(self.event, day, session.user, full_day=True))
+        return jsonify(_grid_payload(self.event, day, full_day=True))
 
 
 class RHColumnCreate(RHBlockScheduleManageBase):
@@ -261,7 +261,7 @@ class RHScheduleContribution(RHBlockScheduleManageBase):
             assign_contribution_to_column(contribution, column, start_dt)
         except ScheduleOverlapError as exc:
             raise BadRequest(str(exc))
-        return jsonify(serialize_contribution(contribution, session.user))
+        return jsonify(serialize_contribution(contribution))
 
 
 class RHUnscheduleContribution(RHBlockScheduleManageBase):
@@ -275,7 +275,7 @@ class RHUnscheduleContribution(RHBlockScheduleManageBase):
         if contribution.blockschedule_assignment is not None:
             db.session.delete(contribution.blockschedule_assignment)
         db.session.flush()
-        return jsonify(serialize_contribution(contribution, session.user))
+        return jsonify(serialize_contribution(contribution))
 
 
 _DESCRIPTION_DISPLAY_CHOICES = ('hidden', 'full', 'truncated')
@@ -520,7 +520,7 @@ class RHDisplayBlockSchedule(RHDisplayEventBase):
 class RHDisplayGridData(RHDisplayEventBase):
     def _process(self):
         day = _event_day(self.event, request.args.get('day'))
-        return jsonify(_grid_payload(self.event, day, session.user))
+        return jsonify(_grid_payload(self.event, day))
 
 
 class RHDisplayExport(RHDisplayEventBase):
