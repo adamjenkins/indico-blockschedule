@@ -18,6 +18,18 @@ All notable changes to the Block Schedule plugin are documented here.
   file-by-file list: [COMPATIBILITY-3.3.12.md](COMPATIBILITY-3.3.12.md).
   Users on Indico 3.3.13+ should use `main`, which keeps the feature.
 
+### Packaging
+- Tagged releases now publish a **wheel with the frontend assets already
+  compiled into it**, so installing needs no Node.js and no Indico source
+  checkout on the target server — just `pip install <release url>`. Built by
+  `.github/workflows/release.yml`, which refuses to publish a wheel whose
+  `static/dist` is empty.
+- The version carries a local marker, `0.1.0+indico3.3.12`. Compiled assets are
+  only valid for the Indico version they were built against, and without the
+  marker a wheel from this branch and one from `main` are named identically —
+  indistinguishable once downloaded, and mixing them up produces a page that
+  loads but misbehaves.
+
 ### Added
 - Spreadsheet export of the schedule (CSV, ODS, Excel) from both the
   management and display toolbars. XLSX/ODS exports carry a second

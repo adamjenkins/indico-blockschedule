@@ -54,5 +54,12 @@ rebuilding assets is enough.
 `main` is the development branch; this one is a port target. When merging
 `main` into it, expect conflicts only in the files listed above, and re-check
 that no newly-added code calls a core API introduced after 3.3.12 — the
-plugin's `pyproject.toml` still declares `indico>=3.3`, so packaging will not
-catch it for you.
+dependency pin is `indico>=3.3` on both branches, so packaging will not catch
+it for you.
+
+This branch's version carries a local marker, `0.1.0+indico3.3.12`, so that the
+wheel built from it (`indico_plugin_blockschedule-0.1.0+indico3.3.12-py3-none-any.whl`)
+is distinguishable from `main`'s after download and in `pip show`. Compiled
+assets are specific to the Indico version they were built against, so an
+unlabelled wheel is a genuine hazard. Keep the marker when bumping the numeric
+part in step with `main`.
