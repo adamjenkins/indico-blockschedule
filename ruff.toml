@@ -21,7 +21,7 @@ select = [
     'LOG',    # flake8-logging
     'G',      # flake8-logging-format
     'B',      # flake8-bugbear
-    'A001',   # flake8-builtins
+    'builtin-variable-shadowing',   # flake8-builtins
     'COM',    # flake8-commas
     'T10',    # flake8-debugger
     'EXE',    # flake8-executable
@@ -29,7 +29,7 @@ select = [
     'PIE',    # flake8-pie
     'PT',     # flake8-pytest-style
     'RSE',    # flake8-raise
-    'RET504', # flake8-return
+    'unnecessary-assign', # flake8-return
     'SIM',    # flake8-simplify
     'TID',    # flake8-tidy-imports
     'PGH',    # pygrep-hooks
@@ -39,79 +39,78 @@ select = [
     'FURB',   # refurb
 ]
 ignore = [
-    'D400',
-    'E226',
-    'E731',
-    'N818',
-    'RUF012',
-    'RUF015',
-    'RUF022',
-    'RUF027',
-    'RUF052',
-    'RUF067',
-    'D205',
-    'D301',
+    'missing-trailing-period',
+    'missing-whitespace-around-arithmetic-operator',
+    'lambda-assignment',
+    'error-suffix-on-exception-name',
+    'mutable-class-default',
+    'unnecessary-iterable-allocation-for-first-element',
+    'unsorted-dunder-all',
+    'missing-f-string-syntax',
+    'used-dummy-variable',
+    'non-empty-init-module',
+    'missing-blank-line-after-summary',
+    'escape-sequence-in-docstring',
     'D1',
-    'D401',
-    'D412',
-    'S101',
-    'S113',
-    'S311',
-    'S324',
-    'S404',
-    'S403',
-    'S405',
-    'S603',
-    'S607',
-    'S704',
-    'B011',
-    'B904',
-    'COM812',
-    'PIE807',
-    'PT011',
-    'PT015',
-    'PT018',
-    'SIM102',
-    'SIM103',
-    'SIM105',
-    'SIM108',
-    'SIM114',
-    'SIM117',
-    'PLC0415',
-    'PLC2701',
+    'non-imperative-mood',
+    'blank-lines-between-header-and-content',
+    'assert',
+    'request-without-timeout',
+    'suspicious-non-cryptographic-random-usage',
+    'hashlib-insecure-hash-function',
+    'suspicious-subprocess-import',
+    'suspicious-pickle-import',
+    'suspicious-xml-etree-import',
+    'subprocess-without-shell-equals-true',
+    'start-process-with-partial-path',
+    'unsafe-markup-use',
+    'assert-false',
+    'raise-without-from-inside-except',
+    'missing-trailing-comma',
+    'reimplemented-container-builtin',
+    'pytest-raises-too-broad',
+    'pytest-assert-always-false',
+    'pytest-composite-assertion',
+    'collapsible-if',
+    'needless-bool',
+    'suppressible-exception',
+    'if-else-block-instead-of-if-exp',
+    'if-with-same-arms',
+    'multiple-with-statements',
+    'import-outside-top-level',
+    'import-private-name',
     'PLR09',
-    'PLR0913',
-    'PLR2004',
-    'PLR6201',
-    'PLR6301',
-    'PLW0108',
-    'PLW0717',
-    'PLW1510',
-    'PLW1514',
-    'PLW1641',
-    'PLW2901',
-    'TRY002',
-    'TRY003',
-    'TRY300',
-    'TRY301',
-    'TRY400',
-    'PERF203',
-    'FURB113',
-    'FURB140',
-    'FURB189',
+    'too-many-arguments',
+    'magic-value-comparison',
+    'literal-membership',
+    'no-self-use',
+    'unnecessary-lambda',
+    'subprocess-run-without-check',
+    'unspecified-encoding',
+    'eq-without-hash',
+    'redefined-loop-name',
+    'raise-vanilla-class',
+    'raise-vanilla-args',
+    'try-consider-else',
+    'raise-within-try',
+    'error-instead-of-exception',
+    'try-except-in-loop',
+    'repeated-append',
+    'reimplemented-starmap',
+    'subclass-builtin',
 ]
 
 extend-safe-fixes = [
-    'RUF005',
+    'collection-literal-concatenation',
     'C4',
-    'UP008',
-    'D200',
-    'D400',
-    'PT014',
-    'RSE102',
-    'RET504',
-    'SIM110',
-    'PERF102',
+    'super-call-with-parameters',
+    'unnecessary-multiline-docstring',
+    'missing-trailing-period',
+    'pytest-duplicate-parametrize-test-cases',
+    'unnecessary-paren-on-raise-exception',
+    'unnecessary-assign',
+    'reimplemented-builtin',
+    'incorrect-dict-iterator',
 ]
 
 [format]
@@ -163,5 +162,5 @@ allow-dunder-method-names = [
 parenthesize-tuple-in-subscript = true
 
 [lint.per-file-ignores]
-'*/*_test.py' = ['E221', 'E241', 'E272', 'N802', 'S105', 'S106', 'PLC1901']
-'*/migrations/*.py' = ['E501', 'D400']
+'*/*_test.py' = ['multiple-spaces-before-operator', 'multiple-spaces-after-comma', 'multiple-spaces-before-keyword', 'invalid-function-name', 'hardcoded-password-string', 'hardcoded-password-func-arg', 'compare-to-empty-string']
+'*/migrations/*.py' = ['line-too-long', 'missing-trailing-period']

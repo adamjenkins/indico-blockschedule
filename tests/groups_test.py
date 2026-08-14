@@ -6,6 +6,7 @@
 # see the LICENSE file for more details.
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from indico.core.db import db
 
@@ -55,7 +56,7 @@ def test_group_titles_are_unique_per_event(dummy_event):
     db.session.add(BlockScheduleGroup(event=dummy_event, title='9th Floor', position=1))
     db.session.flush()
     db.session.add(BlockScheduleGroup(event=dummy_event, title='9th Floor', position=2))
-    with pytest.raises(Exception):  # noqa: B017  (IntegrityError from the unique constraint)
+    with pytest.raises(IntegrityError):
         db.session.flush()
     db.session.rollback()
 
