@@ -102,7 +102,7 @@ export function DisplayApp({eventId}: DisplayAppProps) {
       </div>
 
       <div styleName="header-row">
-        <div style={{width: GUTTER_PX}} />
+        <div styleName="corner" style={{width: GUTTER_PX}} />
         {gridData.columns.map(column => (
           <div
             key={column.id}

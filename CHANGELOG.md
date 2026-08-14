@@ -108,6 +108,14 @@ All notable changes to the Block Schedule plugin are documented here.
   surrounding theme.
 
 ### Fixed
+- The public display page's column headers sat one gutter-width (80px) to the
+  left of the columns they label, once a schedule had enough rooms for the
+  header row to overflow. The spacer that offsets the header row past the time
+  gutter carried no class, so it kept the default `flex-shrink: 1` and was the
+  only item in the row able to shrink — the `min-width: 120px` header cells
+  could not — so it collapsed to zero and slid every header left. It now uses
+  the same non-shrinking `.corner` rule as the management grid. Small schedules
+  never showed it, because the row only overflows once the columns stop fitting.
 - The display page's "Print…" button didn't visibly do anything while
   the page was in fullscreen — its options popup renders through a
   React portal appended to `<body>` by default, which the Fullscreen API
