@@ -144,6 +144,7 @@ def _grid_payload(event, day, *, full_day=False):
         'row_height_px': settings['row_height_px'],
         'show_session_track': settings['show_session_track'],
         'description_display': description_display,
+        'title_max_lines': settings['title_max_lines'],
     }
 
 
@@ -355,6 +356,7 @@ class RHUnscheduleContribution(RHBlockScheduleManageBase):
 
 
 _DESCRIPTION_DISPLAY_CHOICES = ('hidden', 'full', 'truncated')
+_MAX_TITLE_LINES = 20
 
 
 class RHSettingsUpdate(RHBlockScheduleManageBase):
@@ -364,8 +366,10 @@ class RHSettingsUpdate(RHBlockScheduleManageBase):
         'row_height_px': fields.Int(load_default=None),
         'show_session_track': fields.Bool(load_default=None),
         'description_display': fields.Str(load_default=None),
+        'title_max_lines': fields.Int(load_default=None),
     })
-    def _process_PATCH(self, gap_minutes, snap_minutes, row_height_px, show_session_track, description_display):
+    def _process_PATCH(self, gap_minutes, snap_minutes, row_height_px, show_session_track, description_display,
+                       title_max_lines):
         from indico_blockschedule.plugin import BlockschedulePlugin
         settings = BlockschedulePlugin.event_settings
         if gap_minutes is not None:
@@ -386,6 +390,12 @@ class RHSettingsUpdate(RHBlockScheduleManageBase):
             if description_display not in _DESCRIPTION_DISPLAY_CHOICES:
                 raise BadRequest(f'description_display must be one of {_DESCRIPTION_DISPLAY_CHOICES}')
             settings.set(self.event, 'description_display', description_display)
+        if title_max_lines is not None:
+            # 0 means "no clamp at all"; anything higher is a line count. The upper bound is
+            # arbitrary but keeps a typo like 300 from producing a block taller than the day.
+            if not 0 <= title_max_lines <= _MAX_TITLE_LINES:
+                raise BadRequest(f'title_max_lines must be between 0 and {_MAX_TITLE_LINES}')
+            settings.set(self.event, 'title_max_lines', title_max_lines)
         return jsonify(settings.get_all(self.event))
 
 

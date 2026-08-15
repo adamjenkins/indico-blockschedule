@@ -16,10 +16,14 @@
   }
 }
 
+// Wrapping, not squeezing: this row carries every event setting plus the filters, and without
+// `flex-wrap` the labels compress into each other long before the viewport runs out -- on a
+// 1400px screen "Show session/track" was already sitting on top of the description picker.
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1em;
+  gap: 0.75em 1em;
   margin: 1em;
 }
 
@@ -31,9 +35,13 @@
 
 .gap-setting {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 0.5em;
   font-size: 0.9em;
+  // Each setting keeps its label on one line and moves to the next row as a whole, rather than
+  // shrinking into a four-line column of single words.
+  white-space: nowrap;
 
   input {
     width: 4em;

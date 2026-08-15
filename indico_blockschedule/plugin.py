@@ -32,6 +32,7 @@ class BlockschedulePlugin(IndicoPlugin):
         'row_height_px': 60,
         'show_session_track': True,
         'description_display': 'hidden',
+        'title_max_lines': 3,
     }
 
     def init(self):

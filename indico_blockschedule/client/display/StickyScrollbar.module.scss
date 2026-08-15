@@ -1,0 +1,43 @@
+// This file is part of the Block Schedule plugin for Indico.
+// Copyright (C) 2026 Adam Jenkins
+//
+// The Block Schedule plugin is free software; you can redistribute
+// it and/or modify it under the terms of the MIT License;
+// see the LICENSE file for more details.
+
+// Track and thumb are drawn rather than borrowed from a real overflowing element -- see the
+// reasoning in `StickyScrollbar.tsx`. Left and width come from the grid's own box, so the bar
+// sits directly beneath the columns it scrolls.
+.sticky-scrollbar {
+  position: fixed;
+  bottom: 0;
+  z-index: 900;
+  box-sizing: border-box;
+  height: 16px;
+  padding: 3px 0;
+  background-color: rgb(245 245 245 / 95%);
+  border-top: 1px solid #d0d0d0;
+  box-shadow: 0 -2px 6px rgb(0 0 0 / 12%);
+  cursor: pointer;
+  // A drag that leaves the bar must not start selecting the page behind it.
+  user-select: none;
+  touch-action: none;
+
+  @media print {
+    display: none;
+  }
+}
+
+.thumb {
+  height: 100%;
+  background-color: #8a8a8a;
+  border-radius: 5px;
+
+  .sticky-scrollbar:hover & {
+    background-color: #6f6f6f;
+  }
+
+  .sticky-scrollbar.dragging & {
+    background-color: #2a6f97;
+  }
+}

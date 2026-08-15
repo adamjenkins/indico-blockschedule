@@ -1,133 +1,69 @@
-# TASKLIST — Block Schedule, round 4
+# TASKLIST — Block Schedule, round 5
 
-Nine independent feature requests landed in one round. Each phase below is
-scoped to be implementable and testable on its own; phases that touch
-shared files (`types.ts`, grid payload) are ordered so the payload/type
-groundwork lands before the UI that consumes it.
+Three usability fixes, all landing on **both** branches (`main` and
+`release/indico-3.3.12`). They are independent of each other; the title
+limit is ordered last because it is the only one that touches the payload
+and so the only one with a settings/type change to carry.
 
-## Phase 1 — Sidemenu placement
+## Phase 1 — A scrollbar you can actually reach (display page)
 
-- [x] `plugin.py`: management sidemenu entry drops `section='organization'`
-      and gets `weight=79` (Timetable is `weight=80`, no section — higher
-      weight shows first) so "Block Schedule" appears as its own top-level
-      item directly under "Timetable", not nested under "Organization".
+- [x] New `display/StickyScrollbar.tsx`: a horizontal scrollbar fixed to
+      the bottom of the window, shown only while the grid overflows
+      sideways, part of it is on screen, and its own scrollbar is not
+      (which also covers fullscreen, where the grid fits the window).
+- [x] Rendered through a portal into `<body>`. The "Black and white"
+      toggle is a CSS `filter`, and a filtered ancestor becomes the
+      containing block for `position: fixed` descendants — in place, the
+      bar would be pinned to the bottom of the *grid*, which is the exact
+      problem being fixed.
+- [x] Track and thumb drawn rather than delegated to a real overflowing
+      element: native scrollbars cannot be relied on to be *visible*
+      (overlay scrollbars occupy no space and fade out when idle, and
+      Chrome ignores `::-webkit-scrollbar` once `scrollbar-width` is set).
+      Verified: the first, native implementation rendered as a blank strip
+      in a real browser.
+- [x] Drag the thumb, or click the bare track to jump; position follows
+      the grid when it is scrolled by any other means.
+- [x] Hidden when printing, and free of charge in fullscreen (the portal
+      is outside the fullscreen subtree).
 
-## Phase 2 — Black & white view toggle, carried into printing
+## Phase 2 — Add controls at the top of the workspace (management page)
 
-- [x] Display toolbar gets a persistent "Black and white" `Checkbox` next
-      to "Highlight my timetable" — toggling it greyscales the on-screen
-      grid immediately (CSS `filter: grayscale(1)` via a `bs-bw` class
-      applied through normal React `styleName`, not an imperative
-      `classList` call), not just the print output.
-- [x] `PrintButton`: remove the colour `<select>` entirely — printing
-      always reflects whatever the view is currently showing. Keep paper
-      size (A4/A3/A2) × orientation (portrait/landscape).
-- [x] Print should output *only* the schedule grid (plus a header showing
-      the event title), not the surrounding Indico page chrome (global
-      header, side menu, breadcrumbs). Implemented generically — walk up
-      from the grid container to `<body>`, hiding every sibling at each
-      level for the duration of the print, restoring on `afterprint` —
-      rather than hardcoding core's current header/sidebar class names.
-- [x] `_grid_payload`/`BSGridData` gains `event_title` for the print
-      header.
-- [x] Verify an actual print preview shows just the grid + title header,
-      in both colour and B&W.
+- [x] The "add column", "add spanning block" and "add session block" forms
+      move above the column headers, from below the grid.
+- [x] Collapsed behind a row of three buttons, one open at a time —
+      three permanently expanded forms would push the grid itself
+      off-screen, which is the same problem in a different place.
+- [x] Open form framed so it reads as a panel rather than as loose
+      controls floating above the grid.
 
-## Phase 3 — Spreadsheet export (CSV / ODS / XLSX)
+## Phase 3 — Title line limit
 
-- [x] `odfpy` added as a plugin dependency (core only ships CSV/XLSX
-      helpers in `indico.util.spreadsheets`; ODS needs its own writer).
-- [x] `util.py`: `build_export_rows(event, day)` — headers + row dicts
-      (day, start, end, duration, column/room, title, speakers, session,
-      track) for every scheduled contribution on that day, ordered by
-      column position then start time; a small local `generate_ods`/
-      `send_ods` pair mirroring core's `generate_xlsx`/`send_xlsx` shape.
-- [x] One export endpoint per area (`RHDisplayExport`, `RHManageExport`),
-      `/export/<fmt>` with `fmt` in `{csv, ods, xlsx}`.
-- [x] XLSX/ODS exports carry a second sheet ("Schedule Grid") laid out like
-      the visual grid itself (one row per time slot, one column per
-      room/column, contribution/session-block/break titles in the cells
-      they occupy on screen) alongside the flat "Contributions" list sheet
-      — CSV has no concept of multiple sheets, so it stays single-sheet.
-- [x] An "Export…" dropdown button (CSV/ODS/Excel) next to Print on the
-      display toolbar, and on the management toolbar.
+- [x] `title_max_lines` event setting, default 3, `0` meaning no limit;
+      exposed in the grid payload and validated (0–20) in
+      `RHSettingsUpdate`.
+- [x] `ContributionBlock` clamps the title to that many lines with an
+      ellipsis, and carries the full text as a `title` tooltip when it
+      does. No clamp, and no tooltip, at 0.
+- [x] Applied on the display page **and** the management grid, so what is
+      arranged is what gets printed. Deliberately *not* applied in the
+      unscheduled-contributions panel, which is where you hunt for a
+      specific talk by name.
+- [x] Manager-facing "Title lines (0 = no limit)" box in the management
+      toolbar.
+- [x] Payload contract tests in `tests/controllers_test.py`.
 
-## Phase 4 — Autoscheduler: clear-schedule option + randomized placement order
+## Phase 4 — Validation
 
-- [x] `AutoscheduleForm`: an unchecked-by-default "Clear schedule" checkbox.
-      When checked, every contribution currently scheduled inside the
-      chosen day/time span (across all columns) is unscheduled first, then
-      autoschedule runs as normal against the now-empty span.
-- [x] `util.py` `autoschedule`: randomize placement order — shuffle which
-      group (session/track run) or standalone contribution gets placed
-      first, and shuffle item order *within* a standalone batch — while
-      still packing a session/track's contributions as one contiguous,
-      same-column run (the actual conflict-avoidance logic is untouched).
-
-## Phase 5 — Edit-view layout: sticky panels, bounded height
-
-- [x] `UnscheduledPanel`: `position: sticky; top: 0`, `max-height: 90vh`,
-      internally scrollable.
-- [x] `ScheduleGrid`'s column-header row: sticky to the top of the grid's
-      own scroll container while the body scrolls underneath.
-- [x] `.grid-wrapper`: `max-height: 90vh` (already scrolls both axes) so
-      neither the grid nor the unscheduled panel can grow taller than the
-      viewport.
-
-## Phase 6 — Configurable snap-to-minutes (separate from GapSnap)
-
-- [x] New event setting `snap_minutes` (default 5; `0` disables snapping
-      entirely), exposed in the management toolbar and `RHSettingsUpdate`.
-- [x] Drag-and-drop scheduling moves from per-slot drop *cells* to a single
-      drop zone per column track, computing the raw drop position from
-      pointer Y, rounding to the nearest `snap_minutes` (or leaving
-      unrounded when `0`) — independent of the existing GapSnap
-      neighbor-edge snapping, which still runs afterwards.
-
-## Phase 7 — Grey out non-working hours; block drops there
-
-- [x] `_grid_payload` exposes the event's configured working hours
-      (`working_hours_start`/`working_hours_end`, from the existing
-      `day_start_time`/`day_end_time` settings) separately from the grid's
-      display bounds (which span the full 24h in the edit view).
-- [x] Slots/cells outside that range render with a greyed-out background.
-- [x] Dropping a contribution there is rejected client-side (no request
-      sent) — visually it just "bounces back" to its previous position.
-
-## Phase 8 — Manually-placed "Session block" spanning chosen columns
-
-- [x] New model `BlockScheduleSessionBlock` (event-scoped; optional FK to
-      a real `Session` for title/colour; `column_ids` integer array,
-      `NULL` meaning "all columns"; start/duration like spanning blocks)
-      — deliberately *not* a core `SESSION_BLOCK` timetable entry, per the
-      existing "never create session blocks" rule: this is a presentation-
-      only grouping banner.
-- [x] Migration; CRUD endpoints (create/update/delete) mirroring the
-      existing spanning-block ones.
-- [x] Management UI: a form to add one, picking an existing session (or a
-      free-text title), start time, duration, and which columns it spans
-      (defaulting to all).
-- [x] Rendered as a banner inside every spanned column's track (reusing
-      the existing per-column absolute-positioning math), so it looks
-      continuous across however many columns it covers without needing
-      cross-flex-column geometry.
-- [x] Read-only rendering on the display page.
-
-## Phase 9 — Session/track as pill badges
-
-- [x] `ContributionBlock`: replace the single italic "Session · Track"
-      line with two separate pill-style badges (rounded background chips)
-      anchored bottom-left, alongside the existing bottom-right time-range
-      pill.
-
-## Phase 10 — Validation
-
-- [x] `pytest`, `ruff`, `isort`, `unbehead`, `eslint`, `stylelint` all
-      clean.
+- [x] `pytest` (38), `ruff`, `isort`, `eslint`, `stylelint`, `tsc` clean.
 - [x] Frontend rebuild, `indico-dev.service` restart.
-- [x] Live (cookie-injected, no password) re-verification of each phase
-      above: B&W toggle + print preview, each export format downloads and
-      opens, autoscheduler clear+rerun, sticky/scroll behavior, snapping at
-      a couple of `snap_minutes` values, greyed-out non-working hours +
-      blocked drop, a session block spanning 2 of 3 columns, pill badges.
-- [x] Clean up temporary verification scripts/screenshots before finishing.
+- [x] Live browser verification against the 30-column / 200-contribution
+      event and the three-day event, asserted numerically: 31 checks
+      covering thumb geometry and both drag and click, the bar appearing
+      and disappearing at the right scroll positions, clamped line counts
+      and measured title heights at 3 / 1 / 0 lines, and the add panel's
+      position and one-at-a-time behaviour.
+- [x] Toolbar overlap regression caught by screenshot and fixed: both
+      toolbars now wrap instead of compressing.
+- [x] Clean up temporary verification scripts/screenshots before
+      finishing.

@@ -56,13 +56,26 @@ down the rows, rooms run across the columns.
 - Configurable row height, snap-to-minutes, and per-column minimum width;
   session/track shown as pill badges (with a setting to hide them) and an
   optional description preview.
+- Presentation titles are truncated with an ellipsis after a set number of
+  lines — three by default, changed per event from the management
+  toolbar's "Title lines" box, or set to 0 for no limit. Long titles
+  otherwise crowd out the speaker, badges and time inside a block. The
+  full title is still there on hover, and the limit applies to the
+  management grid too, so what you arrange is what gets printed.
 - Contributions can never overlap in the same room/time, and dropping one
   outside the event's configured working hours (shown visibly greyed
   out) just bounces back instead of scheduling it. A live, cursor-
   following preview shows the time a dragged contribution would land on
   before you drop it.
 - Sticky column headers and a sticky, scrollable unscheduled-
-  contributions panel, both capped to the viewport height.
+  contributions panel, both capped to the viewport height. On the display
+  page a wide grid also gets a horizontal scrollbar pinned to the bottom
+  of the window: the grid's own one sits at the foot of a table that is
+  usually several screens tall, so it is off-screen exactly when it is
+  needed.
+- The controls for adding columns, spanning blocks and session blocks sit
+  at the top of the management workspace, one open at a time, so they are
+  reachable without scrolling past the whole day first.
 
 Block Schedule is added alongside Indico's built-in Timetable feature, not
 a replacement for it — both stay usable, and scheduling writes into

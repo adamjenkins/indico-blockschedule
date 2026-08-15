@@ -8,6 +8,33 @@ All notable changes to the Block Schedule plugin are documented here.
 
 ## [Unreleased]
 
+### Added
+- **A title line limit**, so one long presentation title can no longer push
+  the speaker, badges and time out of its block. Titles are truncated with an
+  ellipsis after a configurable number of lines — three by default, set per
+  event from the management toolbar's "Title lines" box, and 0 for no limit at
+  all. The limit applies to the management grid as well as the display page,
+  so what is arranged is what gets printed, and the full title remains
+  available on hover.
+- **A sticky horizontal scrollbar on the display page.** A grid with enough
+  rooms scrolls sideways, but its own scrollbar is at the foot of a table
+  several screens tall — off-screen exactly when it is wanted. A scrollbar is
+  now pinned to the bottom of the window whenever the grid overflows and its
+  own is out of sight. Its track and thumb are drawn rather than delegated to
+  a native scrollbar, which on macOS (and in several Chrome configurations) is
+  an overlay that fades out when idle — invisible, which is the problem being
+  solved.
+
+### Changed
+- The **"add column", "add spanning block" and "add session block" forms moved
+  to the top** of the management workspace, and collapsed behind a row of
+  buttons that opens one at a time. They previously sat below a grid that is
+  routinely taller than the scroll box, so adding a column meant scrolling past
+  the entire day to find the control and then scrolling back.
+- The management and display toolbars now **wrap onto more rows instead of
+  compressing**. With every event setting on one line, labels had begun
+  overlapping each other well before the viewport ran out of width.
+
 ## [0.1.1+indico3.3.12] — 2026-08-14
 
 ### Removed

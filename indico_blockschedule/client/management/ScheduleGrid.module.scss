@@ -129,26 +129,31 @@
   }
 }
 
-.add-column {
-  display: flex;
-  gap: 0.5em;
-  align-items: center;
-  margin-top: 1em;
+// Sits above the grid rather than below it. Collapsed it costs one row of buttons; the open
+// form is what takes the space, and only ever one of them at a time.
+.add-panel {
+  margin-bottom: 0.8em;
 }
 
-.add-spanning-block {
+.add-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5em;
   align-items: center;
-  margin-top: 0.5em;
 }
 
+.add-column,
+.add-spanning-block,
 .add-session-block {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;
   align-items: center;
   margin-top: 0.5em;
+  padding: 0.6em;
+  border: 1px solid #dcdcdc;
+  border-radius: 3px;
+  background-color: #fafafa;
 }
 
 .column-picker {

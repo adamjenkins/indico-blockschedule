@@ -30,6 +30,17 @@ if (EMPTY_DRAG_IMAGE) {
   EMPTY_DRAG_IMAGE.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 }
 
+type AddFormKey = 'column' | 'spanning' | 'session';
+
+// The labels are functions rather than strings so that `Translate` runs at render time: a
+// module-level `Translate.string(...)` would be evaluated at import time, before the page's
+// translations are in place.
+const ADD_FORMS: {key: AddFormKey; label: () => React.ReactNode}[] = [
+  {key: 'column', label: () => <Translate>Column</Translate>},
+  {key: 'spanning', label: () => <Translate>Spanning block</Translate>},
+  {key: 'session', label: () => <Translate>Session block</Translate>},
+];
+
 interface UpdateColumnData {
   label?: string;
   color?: string | null;
@@ -548,6 +559,9 @@ export function ScheduleGrid({
     [...gridData.scheduled_contributions, ...gridData.unscheduled_contributions].map(c => [c.id, c])
   );
 
+  // Which of the "add" forms is expanded, if any -- one at a time (see the panel below).
+  const [openForm, setOpenForm] = useState<AddFormKey | null>(null);
+
   const dayStartMinutes = parseTimeToMinutes(gridData.day_start_time);
   const workingHoursStart = parseTimeToMinutes(gridData.working_hours_start);
   const workingHoursEnd = parseTimeToMinutes(gridData.working_hours_end);
@@ -668,6 +682,47 @@ export function ScheduleGrid({
 
   return (
     <div styleName="grid-wrapper">
+      {/* At the top of the workspace, not the bottom: these three forms used to sit below a
+          grid that is routinely taller than the scroll box, so adding a column meant scrolling
+          past the whole day to find the control and then scrolling back. Only one form is open
+          at a time -- three permanently expanded forms would push the grid itself off-screen,
+          which is the same problem in a different place. */}
+      <div styleName="add-panel">
+        <div styleName="add-bar">
+          {ADD_FORMS.map(({key, label}) => (
+            <Button
+              key={key}
+              size="small"
+              toggle
+              active={openForm === key}
+              aria-expanded={openForm === key}
+              onClick={() => setOpenForm(openForm === key ? null : key)}
+            >
+              <Icon name={openForm === key ? 'minus' : 'plus'} />
+              {label()}
+            </Button>
+          ))}
+        </div>
+        {openForm === 'column' && (
+          <AddColumnForm
+            roombookingEnabled={gridData.roombooking_enabled}
+            rooms={gridData.rooms}
+            onCreateColumn={onCreateColumn}
+          />
+        )}
+        {openForm === 'spanning' && (
+          <AddSpanningBlockForm slots={slots} onCreateSpanningBlock={onCreateSpanningBlock} />
+        )}
+        {openForm === 'session' && (
+          <AddSessionBlockForm
+            slots={slots}
+            sessions={gridData.sessions}
+            columns={gridData.columns}
+            onCreateSessionBlock={onCreateSessionBlock}
+          />
+        )}
+      </div>
+
       <div styleName="header-row">
         <div styleName="corner" style={{width: GUTTER_PX}} />
         {gridData.columns.map(column => (
@@ -739,6 +794,7 @@ export function ScheduleGrid({
                     dimmed={isDimmed?.(contribution)}
                     draggable
                     showSessionTrack={gridData.show_session_track}
+                    titleMaxLines={gridData.title_max_lines}
                     previewStartMinutes={
                       dragPreview?.contributionId === contribution.id ? dragPreview.startMinutes : null
                     }
@@ -793,19 +849,6 @@ export function ScheduleGrid({
           />
         ))}
       </div>
-
-      <AddColumnForm
-        roombookingEnabled={gridData.roombooking_enabled}
-        rooms={gridData.rooms}
-        onCreateColumn={onCreateColumn}
-      />
-      <AddSpanningBlockForm slots={slots} onCreateSpanningBlock={onCreateSpanningBlock} />
-      <AddSessionBlockForm
-        slots={slots}
-        sessions={gridData.sessions}
-        columns={gridData.columns}
-        onCreateSessionBlock={onCreateSessionBlock}
-      />
 
       {dragPreview && draggingContribution && dragGrabOffset && (
         // The native drag image is suppressed entirely (see `EMPTY_DRAG_IMAGE`/`setDragImage`

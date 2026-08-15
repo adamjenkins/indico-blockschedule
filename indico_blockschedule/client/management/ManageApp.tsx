@@ -142,6 +142,7 @@ export function ManageApp({eventId}: ManageAppProps) {
     row_height_px?: number;
     show_session_track?: boolean;
     description_display?: BSDescriptionDisplay;
+    title_max_lines?: number;
   }) => {
     try {
       await indicoAxios.patch(settingsUpdateURL({event_id: eventId}), data);
@@ -318,6 +319,23 @@ export function ManageApp({eventId}: ManageAppProps) {
               const value = Number(e.target.value);
               if (!Number.isNaN(value) && value !== gridData.row_height_px) {
                 updateSettings({row_height_px: value});
+              }
+            }}
+          />
+        </label>
+        <label styleName="gap-setting">
+          <Translate>Title lines (0 = no limit)</Translate>
+          <input
+            type="number"
+            min={0}
+            max={20}
+            title={Translate.string('Truncate contribution titles after this many lines, here and on the display page')}
+            defaultValue={gridData.title_max_lines}
+            key={gridData.title_max_lines}
+            onBlur={e => {
+              const value = Number(e.target.value);
+              if (!Number.isNaN(value) && value !== gridData.title_max_lines) {
+                updateSettings({title_max_lines: value});
               }
             }}
           />

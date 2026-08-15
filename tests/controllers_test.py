@@ -5,7 +5,8 @@
 # it and/or modify it under the terms of the MIT License;
 # see the LICENSE file for more details.
 
-from indico_blockschedule.controllers import _day_bounds, _minutes_to_hhmm
+from indico_blockschedule.controllers import _day_bounds, _grid_payload, _minutes_to_hhmm
+from indico_blockschedule.plugin import BlockschedulePlugin
 
 
 def test_minutes_to_hhmm():
@@ -39,3 +40,16 @@ def test_day_bounds_rounds_up_a_ragged_end_to_the_next_slot():
     scheduled = [{'start_minutes': 540, 'duration_minutes': 25}]  # 09:00-09:25
     settings = {'day_start_time': '09:00', 'day_end_time': '18:00'}
     assert _day_bounds(scheduled, [], 30, settings) == ('09:00', '09:30')
+
+
+def test_grid_payload_carries_the_title_line_limit(dummy_event):
+    # The app and the display page both clamp titles from this key; it is part of the payload
+    # contract, so its absence should fail here rather than silently unclamp every title.
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date())
+    assert payload['title_max_lines'] == 3
+
+
+def test_grid_payload_title_line_limit_follows_the_event_setting(dummy_event):
+    BlockschedulePlugin.event_settings.set(dummy_event, 'title_max_lines', 0)
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date())
+    assert payload['title_max_lines'] == 0
