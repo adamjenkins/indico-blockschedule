@@ -8,6 +8,8 @@ All notable changes to the Block Schedule plugin are documented here.
 
 ## [Unreleased]
 
+## [0.1.2+indico3.3.12] — 2026-08-15
+
 ### Added
 - **A title line limit**, so one long presentation title can no longer push
   the speaker, badges and time out of its block. Titles are truncated with an
