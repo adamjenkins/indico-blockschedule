@@ -22,6 +22,7 @@ import {BSGridData} from '../types';
 
 import {ExportButton} from './ExportButton';
 import {PrintButton} from './PrintButton';
+import {StickyScrollbar} from './StickyScrollbar';
 
 import './DisplayApp.module.scss';
 
@@ -189,6 +190,7 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
                     showFavorite={loggedIn}
                     dimmed={isDimmed(contribution)}
                     showSessionTrack={gridData.show_session_track}
+                    titleMaxLines={gridData.title_max_lines}
                     style={{height: '100%'}}
                   />
                 </div>
@@ -234,6 +236,11 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
           </div>
         ))}
       </div>
+
+      {/* The grid's own horizontal scrollbar sits at the bottom of a table that is usually
+          several screens tall, so it is off-screen whenever it is wanted. This mirrors it at
+          the bottom of the window. */}
+      <StickyScrollbar targetRef={containerRef} revision={`${gridData.day}|${columns.length}`} />
     </div>
   );
 }

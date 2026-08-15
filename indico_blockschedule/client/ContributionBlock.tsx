@@ -24,6 +24,8 @@ interface ContributionBlockProps {
   /** Grey this block out: it is outside the current track filter, but its room is shown. */
   dimmed?: boolean;
   showSessionTrack?: boolean;
+  /** Truncate the title after this many lines; 0 or undefined leaves it unclamped. */
+  titleMaxLines?: number;
   /** While this block is being dragged, the prospective start minute it would land on if
    * dropped right now -- overrides the displayed time range and highlights it, so the time
    * updates live as the block is dragged around instead of only after it's dropped. */
@@ -42,6 +44,7 @@ export function ContributionBlock({
   showFavorite = true,
   dimmed,
   showSessionTrack = true,
+  titleMaxLines,
   previewStartMinutes,
   onDragStart,
   onDragEnd,
@@ -59,6 +62,20 @@ export function ContributionBlock({
       : null;
   const isPreview = previewStartMinutes !== null && previewStartMinutes !== undefined;
 
+  // Kept inline rather than in the stylesheet because the line count is per-event data, not a
+  // design constant. `-webkit-box` is still the only cross-browser way to truncate at a line
+  // count (it is what every browser implements, prefix and all), and a clamped title gets the
+  // full text as a tooltip, since the ellipsis is the only sign that anything is missing.
+  const clamped = !!titleMaxLines && titleMaxLines > 0;
+  const titleStyle: React.CSSProperties | undefined = clamped
+    ? {
+        display: '-webkit-box',
+        WebkitBoxOrient: 'vertical',
+        WebkitLineClamp: titleMaxLines,
+        overflow: 'hidden',
+      }
+    : undefined;
+
   const content = (
     <>
       {showFavorite && (
@@ -69,7 +86,9 @@ export function ContributionBlock({
           onChange={setStarred}
         />
       )}
-      <div styleName="title">{contribution.title}</div>
+      <div styleName="title" style={titleStyle} title={clamped ? contribution.title : undefined}>
+        {contribution.title}
+      </div>
       <div styleName="people">{contribution.people.join(', ')}</div>
       {showSessionTrack && (contribution.session_name || contribution.track_name) && (
         <div styleName="badges">

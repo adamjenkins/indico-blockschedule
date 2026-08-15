@@ -35,8 +35,9 @@
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1.5em;
+  gap: 0.75em 1.5em;
   margin-bottom: 1em;
 
   @media print {

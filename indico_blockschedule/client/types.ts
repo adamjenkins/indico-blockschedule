@@ -98,4 +98,6 @@ export interface BSGridData {
   row_height_px: number;
   show_session_track: boolean;
   description_display: BSDescriptionDisplay;
+  /** Lines a contribution title may occupy before it is truncated; 0 means no limit. */
+  title_max_lines: number;
 }
