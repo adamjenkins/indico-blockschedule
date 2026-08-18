@@ -39,6 +39,10 @@ down the rows, rooms run across the columns.
   every column for a given time range. Manually-placed "session block"
   banners work the same way but can span just some of the columns, and
   can be tied to a real session for their title/colour.
+- The grid-data payload carries the **event's own logo** from Indico's Layout
+  page. Nothing in the schedule itself uses it — it is published for the phone
+  app, which shows each event's logo in its library and has no other way to
+  learn it.
 - Export the schedule as CSV, ODS, or Excel — the spreadsheet formats
   include a second sheet laid out like the visual grid itself, with one
   merged cell per presentation carrying its room, session, track,

@@ -80,6 +80,8 @@ export interface BSGridData {
   day: string;
   event_days: string[];
   event_title: string;
+  /** The event's logo from the Layout page, or null when none is set. */
+  event_logo_url: string | null;
   columns: BSColumn[];
   groups: BSGroup[];
   roombooking_enabled: boolean;

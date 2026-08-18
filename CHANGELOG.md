@@ -5,6 +5,12 @@ All notable changes to the Block Schedule plugin are documented here.
 ## [Unreleased]
 
 ### Added
+- **The event's own logo in the grid-data payload** (`event_logo_url`), taken
+  from Indico's Layout page. Nothing in the schedule uses it; it is there so the
+  phone app can show each event's logo in its library, which it has no other way
+  to learn. The address core serves it at contains the image's hash, so a
+  replaced logo is a different URL and no cached copy anywhere can go stale.
+  Null when no logo is set, rather than an empty string.
 - **A Block Schedule switch on each event's Features page.** The plugin is no
   longer simply present in every event on the site: a manager turns it on for
   the events that want a grid, and events that do not want one are not offered
