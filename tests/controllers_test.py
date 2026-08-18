@@ -74,3 +74,22 @@ def test_grid_payload_leaves_uncoloured_tracks_null(dummy_event, db):
     # Not an empty string and not the default colour: the frontend distinguishes "no choice
     # made" from "chosen", and only the former falls back to the stylesheet.
     assert payload['tracks'][0]['color'] is None
+
+
+def test_grid_payload_carries_no_logo_url_when_none_is_set(dummy_event):
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date())
+    # None rather than an empty string: the app treats "no logo" and "a logo that
+    # would not load" differently, and only one of them is worth a placeholder.
+    assert payload['event_logo_url'] is None
+
+
+def test_grid_payload_carries_the_event_logo_url(dummy_event, db):
+    dummy_event.logo = b'not really a png'
+    dummy_event.logo_metadata = {'hash': 'abc123', 'size': 16, 'filename': 'logo.png',
+                                 'content_type': 'image/png'}
+    db.session.flush()
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date())
+    # The hash is in the URL, so a replaced logo is a different address and no
+    # cached copy anywhere can go stale.
+    assert payload['event_logo_url'] is not None
+    assert 'abc123' in payload['event_logo_url']

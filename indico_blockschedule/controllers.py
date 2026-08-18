@@ -123,6 +123,13 @@ def _grid_payload(event, day, *, full_day=False):
         'day': day.isoformat(),
         'event_days': [d.isoformat() for d in event.iter_days()],
         'event_title': event.title,
+        # The event's own logo, from the Layout page. Core already serves it at a
+        # URL containing the image's hash, so a replaced logo is a different URL
+        # and nothing downstream can cache the old one -- which is what makes it
+        # safe for the phone app to keep a copy indefinitely. None when unset,
+        # rather than an empty string, so "no logo" cannot be mistaken for a
+        # broken one.
+        'event_logo_url': event.logo_url if event.has_logo else None,
         'columns': [serialize_column(c) for c in columns],
         'groups': [serialize_group(g) for g in groups],
         'roombooking_enabled': config.ENABLE_ROOMBOOKING,
