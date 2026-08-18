@@ -7,6 +7,7 @@
 
 import React, {useEffect, useState} from 'react';
 
+import {readableTextColor} from './colors';
 import {FavoriteStar} from './FavoriteStar';
 import {minutesToLabel} from './gridTime';
 import {BSContribution} from './types';
@@ -24,6 +25,8 @@ interface ContributionBlockProps {
   /** Grey this block out: it is outside the current track filter, but its room is shown. */
   dimmed?: boolean;
   showSessionTrack?: boolean;
+  /** `rrggbb` for this contribution's track, if its manager has set one. */
+  trackColor?: string | null;
   /** Truncate the title after this many lines; 0 or undefined leaves it unclamped. */
   titleMaxLines?: number;
   /** While this block is being dragged, the prospective start minute it would land on if
@@ -44,6 +47,7 @@ export function ContributionBlock({
   showFavorite = true,
   dimmed,
   showSessionTrack = true,
+  trackColor,
   titleMaxLines,
   previewStartMinutes,
   onDragStart,
@@ -76,6 +80,13 @@ export function ContributionBlock({
       }
     : undefined;
 
+  // The track's own colour when the manager has picked one, otherwise the stylesheet's
+  // default. The text colour is never chosen by anyone -- see `readableTextColor`, which
+  // guarantees the pair clears WCAG AA whatever colour lands here.
+  const trackBadgeStyle: React.CSSProperties | undefined = trackColor
+    ? {backgroundColor: `#${trackColor}`, color: readableTextColor(`#${trackColor}`)}
+    : undefined;
+
   const content = (
     <>
       {showFavorite && (
@@ -93,7 +104,11 @@ export function ContributionBlock({
       {showSessionTrack && (contribution.session_name || contribution.track_name) && (
         <div styleName="badges">
           {contribution.session_name && <span styleName="badge badge-session">{contribution.session_name}</span>}
-          {contribution.track_name && <span styleName="badge badge-track">{contribution.track_name}</span>}
+          {contribution.track_name && (
+            <span styleName="badge badge-track" style={trackBadgeStyle}>
+              {contribution.track_name}
+            </span>
+          )}
         </div>
       )}
       {contribution.description && <div styleName="description">{contribution.description}</div>}

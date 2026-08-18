@@ -13,6 +13,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Checkbox, Dropdown, Loader} from 'semantic-ui-react';
 
+import {paleBackground, readableTextColor, trackColorMap} from '../colors';
 import {ContributionBlock} from '../ContributionBlock';
 import {FilterBar} from '../FilterBar';
 import {applyFilters, BSFilters, parseFilters, syncFiltersToUrl} from '../filters';
@@ -25,31 +26,6 @@ import {PrintButton} from './PrintButton';
 import {StickyScrollbar} from './StickyScrollbar';
 
 import './DisplayApp.module.scss';
-
-// Duplicated from '../colors' rather than imported: sharing that module with the
-// management entry would put it (and whatever else ends up alongside it) into a
-// webpack-generated "common" chunk, which breaks at runtime here since plugin
-// builds disable a shared runtime chunk (see webpack/base.mjs's `runtimeChunk`).
-function hexToRgb(hex: string): [number, number, number] {
-  const normalized = hex.replace('#', '');
-  return [
-    parseInt(normalized.slice(0, 2), 16),
-    parseInt(normalized.slice(2, 4), 16),
-    parseInt(normalized.slice(4, 6), 16),
-  ];
-}
-
-function paleBackground(hex: string, amount = 0.85): string {
-  const [r, g, b] = hexToRgb(hex);
-  const mix = (channel: number) => Math.round(channel + (255 - channel) * amount);
-  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
-}
-
-function readableTextColor(hex: string): string {
-  const [r, g, b] = hexToRgb(hex);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.6 ? '#202020' : '#ffffff';
-}
 
 interface DisplayAppProps {
   eventId: number;
@@ -90,6 +66,7 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
 
   const slots = buildSlots(gridData.day_start_time, gridData.day_end_time, gridData.slot_minutes);
   const rowHeightPx = gridData.row_height_px;
+  const trackColors = trackColorMap(gridData.tracks);
   const bodyHeight = slots.length * rowHeightPx;
 
   return (
@@ -190,6 +167,9 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
                     showFavorite={loggedIn}
                     dimmed={isDimmed(contribution)}
                     showSessionTrack={gridData.show_session_track}
+                    trackColor={
+                      contribution.track_id === null ? null : trackColors.get(contribution.track_id)
+                    }
                     titleMaxLines={gridData.title_max_lines}
                     style={{height: '100%'}}
                   />

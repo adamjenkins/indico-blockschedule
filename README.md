@@ -56,6 +56,14 @@ down the rows, rooms run across the columns.
 - Configurable row height, snap-to-minutes, and per-column minimum width;
   session/track shown as pill badges (with a setting to hide them) and an
   optional description preview.
+- Tracks can be given their own colours, on a settings page reached from the
+  management toolbar. The track's badge then carries that colour everywhere it
+  appears — the management grid, the unscheduled panel and the display page —
+  so a colour-coded programme reads the same on screen and on paper. The badge's
+  *text* colour is never chosen: it is computed as black or white, whichever
+  contrasts better, which guarantees every badge clears the WCAG AA threshold
+  (4.5:1) no matter what colour is picked. The settings page shows the ratio it
+  achieved for each track.
 - Presentation titles are truncated with an ellipsis after a set number of
   lines — three by default, changed per event from the management
   toolbar's "Title lines" box, or set to 0 for no limit. Long titles
@@ -128,9 +136,22 @@ first).
    built assets — e.g. `sudo systemctl restart <your-indico-service>`, or
    just stop/restart `indico run` if you're running it directly.
 
-Once running, every event gets a new "Block Schedule" entry in both its
-management sidemenu and its public navigation menu. Room Booking does not
-need to be enabled — columns can be created with just a name.
+Once running, Block Schedule appears as a switch on each event's
+**Features** page. It is **off by default**, with one exception: an event that
+already has a block-schedule grid keeps it, so upgrading an existing site does
+not take working schedules off their event menus. Turning the switch on gives
+that event a "Block Schedule" entry in both its management sidemenu and its
+public navigation menu; turning it off hides both and makes the plugin's URLs
+return 404.
+
+Site administrators can change the default for new events at
+**Administration → Plugins → Block Schedule**, by turning on "Enabled by
+default". Note the semantics this inherits from Indico: the default applies only
+to events where no feature has ever been switched on or off. Once an event's
+feature list has been touched at all, that event keeps whatever it was set to.
+
+Room Booking does not need to be enabled — columns can be created with just a
+name.
 
 To upgrade later, repeat from step 1 (`git pull` instead of `git clone`),
 then steps 3, 5 (if there's a new migration), 6, and 7.

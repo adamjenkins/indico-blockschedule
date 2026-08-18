@@ -10,6 +10,7 @@ import columnsCreateURL from 'indico-url:plugin_blockschedule.columns_create';
 import columnsUpdateURL from 'indico-url:plugin_blockschedule.columns_delete_update';
 import columnsReorderURL from 'indico-url:plugin_blockschedule.columns_reorder';
 import gridDataURL from 'indico-url:plugin_blockschedule.manage_grid_data';
+import trackColorsURL from 'indico-url:plugin_blockschedule.manage_track_colors';
 import scheduleURL from 'indico-url:plugin_blockschedule.schedule';
 import sessionBlocksCreateURL from 'indico-url:plugin_blockschedule.session_blocks_create';
 import sessionBlocksUpdateURL from 'indico-url:plugin_blockschedule.session_blocks_delete_update';
@@ -24,6 +25,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Checkbox, Dropdown, Loader} from 'semantic-ui-react';
 
+import {trackColorMap} from '../colors';
 import {FilterBar} from '../FilterBar';
 import {applyFilters, BSFilters, parseFilters, syncFiltersToUrl} from '../filters';
 import {FullscreenButton} from '../FullscreenButton';
@@ -381,6 +383,9 @@ export function ManageApp({eventId}: ManageAppProps) {
           tracks={gridData.tracks}
           onRun={runAutoschedule}
         />
+        <a styleName="toolbar-link" href={trackColorsURL({event_id: eventId})}>
+          <Translate>Track colours</Translate>
+        </a>
         <ExportButton eventId={eventId} day={gridData.day} />
         <FullscreenButton targetRef={containerRef} />
       </div>
@@ -389,6 +394,7 @@ export function ManageApp({eventId}: ManageAppProps) {
           eventId={eventId}
           contributions={gridData.unscheduled_contributions}
           showSessionTrack={gridData.show_session_track}
+          trackColors={trackColorMap(gridData.tracks)}
           onUnschedule={unscheduleContribution}
         />
         <ScheduleGrid

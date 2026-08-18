@@ -10,12 +10,16 @@ from indico.core.plugins import IndicoPluginBlueprint
 from indico_blockschedule.controllers import (RHAutoSchedule, RHColumnCreate, RHColumnDeleteUpdate, RHColumnReorder,
                                               RHDisplayBlockSchedule, RHDisplayExport, RHDisplayGridData, RHGroupCreate,
                                               RHGroupDeleteUpdate, RHManageBlockSchedule, RHManageExport,
-                                              RHManageGridData, RHScheduleContribution, RHSessionBlockCreate,
-                                              RHSessionBlockDeleteUpdate, RHSettingsUpdate, RHSpanningBlockCreate,
-                                              RHSpanningBlockDeleteUpdate, RHUnscheduleContribution)
+                                              RHManageGridData, RHManageTrackColors, RHScheduleContribution,
+                                              RHSessionBlockCreate, RHSessionBlockDeleteUpdate, RHSettingsUpdate,
+                                              RHSpanningBlockCreate, RHSpanningBlockDeleteUpdate, RHTrackColorsUpdate,
+                                              RHUnscheduleContribution)
 
 
-blueprint = IndicoPluginBlueprint('blockschedule', __name__)
+# Every URL below 404s unless the event has the Block Schedule feature switched on -- see
+# `plugin.py`. The menu entries hide themselves too; this is what stops a bookmarked or
+# guessed URL from working around that.
+blueprint = IndicoPluginBlueprint('blockschedule', __name__, event_feature='blockschedule')
 
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/', 'manage', RHManageBlockSchedule)
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/grid-data', 'manage_grid_data', RHManageGridData)
@@ -35,6 +39,10 @@ blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/unschedule',
                        RHUnscheduleContribution, methods=('POST',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/settings', 'settings_update',
                        RHSettingsUpdate, methods=('PATCH',))
+blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/track-colors', 'manage_track_colors',
+                       RHManageTrackColors)
+blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/track-colors/update', 'track_colors_update',
+                       RHTrackColorsUpdate, methods=('PATCH',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/autoschedule', 'autoschedule', RHAutoSchedule,
                        methods=('POST',))
 blueprint.add_url_rule('/event/<int:event_id>/manage/block-schedule/spanning-blocks', 'spanning_blocks_create',

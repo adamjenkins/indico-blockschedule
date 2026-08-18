@@ -49,3 +49,21 @@ class WPDisplayBlockSchedule(WPJinjaMixinPlugin, WPContributionsDisplayBase):
             'screen': _bundle_files('display.js', 'display.css'),
             'print': (),
         }
+
+
+class WPManageTrackColors(WPJinjaMixinPlugin, WPEventManagement):
+    """The track-colour settings page.
+
+    Deliberately not full-width: it is a short list of tracks and swatches, and
+    the standard management column keeps it looking like every other settings
+    page in the event rather than like a second workspace.
+    """
+
+    sidemenu_option = 'blockschedule'
+
+    @property
+    def additional_bundles(self):
+        return {
+            'screen': _bundle_files('management.js', 'management.css'),
+            'print': (),
+        }

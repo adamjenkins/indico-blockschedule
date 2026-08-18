@@ -65,6 +65,8 @@ export interface BSSession {
 export interface BSTrack {
   id: number;
   title: string;
+  /** `rrggbb` (no leading `#`) chosen by the event manager, or null for the default badge. */
+  color: string | null;
 }
 
 export interface BSGroup {

@@ -17,10 +17,18 @@ interface UnscheduledPanelProps {
   eventId: number;
   contributions: BSContribution[];
   showSessionTrack: boolean;
+  /** Track id -> `rrggbb`, so badges match the grid the contributions are dragged into. */
+  trackColors: Map<number, string>;
   onUnschedule: (contributionId: number) => void;
 }
 
-export function UnscheduledPanel({eventId, contributions, showSessionTrack, onUnschedule}: UnscheduledPanelProps) {
+export function UnscheduledPanel({
+  eventId,
+  contributions,
+  showSessionTrack,
+  trackColors,
+  onUnschedule,
+}: UnscheduledPanelProps) {
   const onDragStart = (event: React.DragEvent, contribution: BSContribution) => {
     event.dataTransfer.setData('text/plain', String(contribution.id));
   };
@@ -50,6 +58,7 @@ export function UnscheduledPanel({eventId, contributions, showSessionTrack, onUn
           eventId={eventId}
           draggable
           showSessionTrack={showSessionTrack}
+          trackColor={contribution.track_id === null ? null : trackColors.get(contribution.track_id)}
           onDragStart={onDragStart}
         />
       ))}

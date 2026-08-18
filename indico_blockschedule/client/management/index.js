@@ -6,3 +6,4 @@
 // see the LICENSE file for more details.
 
 import './ManageApp';
+import './TrackColors';

@@ -53,3 +53,24 @@ def test_grid_payload_title_line_limit_follows_the_event_setting(dummy_event):
     BlockschedulePlugin.event_settings.set(dummy_event, 'title_max_lines', 0)
     payload = _grid_payload(dummy_event, dummy_event.start_dt.date())
     assert payload['title_max_lines'] == 0
+
+
+def test_grid_payload_carries_track_colours(dummy_event, db):
+    from indico.modules.events.tracks.models.tracks import Track
+
+    track = Track(event=dummy_event, title='Pragmatics')
+    db.session.flush()
+    BlockschedulePlugin.event_settings.set(dummy_event, 'track_colors', {str(track.id): 'c0392b'})
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date())
+    assert payload['tracks'] == [{'id': track.id, 'title': 'Pragmatics', 'color': 'c0392b'}]
+
+
+def test_grid_payload_leaves_uncoloured_tracks_null(dummy_event, db):
+    from indico.modules.events.tracks.models.tracks import Track
+
+    Track(event=dummy_event, title='Vocabulary Acquisition')
+    db.session.flush()
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date())
+    # Not an empty string and not the default colour: the frontend distinguishes "no choice
+    # made" from "chosen", and only the former falls back to the stylesheet.
+    assert payload['tracks'][0]['color'] is None
