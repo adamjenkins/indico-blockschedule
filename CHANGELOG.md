@@ -8,6 +8,31 @@ All notable changes to the Block Schedule plugin are documented here.
 
 ## [Unreleased]
 
+### Added
+- **A Block Schedule switch on each event's Features page.** The plugin is no
+  longer simply present in every event on the site: a manager turns it on for
+  the events that want a grid, and events that do not want one are not offered
+  it. It is off by default, except for events that already have a grid built —
+  those keep it, so installing this version does not take working schedules off
+  their menus. With the switch off, both menu entries disappear and every URL
+  the plugin owns returns 404.
+- **An administrator setting for that default** at Administration → Plugins →
+  Block Schedule: "Enabled by default" turns the feature on for events that have
+  not been decided either way. As in the rest of Indico, the default stops
+  applying to an event the moment any feature is switched on or off there.
+- **Track colours**, set on a page of their own reached from the management
+  toolbar. Instead of every track sharing one purple pill, each track's badge
+  carries its own colour — on the management grid, in the unscheduled panel and
+  on the display page alike — which is what makes a colour-coded printed
+  programme possible. Tracks left alone keep the default.
+
+### Changed
+- Badge and header text colours are now computed from the **WCAG contrast
+  ratio** rather than from a rough brightness average, and the dark option is
+  true black. Choosing the better of black and white can never fall below
+  4.58:1, so there is no colour a manager can pick that produces a badge failing
+  AA — the track-colour page shows the ratio each track actually achieved.
+
 ## [0.1.2+indico3.3.12] — 2026-08-15
 
 ### Added

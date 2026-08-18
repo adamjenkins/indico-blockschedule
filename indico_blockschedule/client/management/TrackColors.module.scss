@@ -1,0 +1,110 @@
+// This file is part of the Block Schedule plugin for Indico.
+// Copyright (C) 2026 Adam Jenkins
+//
+// The Block Schedule plugin is free software; you can redistribute
+// it and/or modify it under the terms of the MIT License;
+// see the LICENSE file for more details.
+
+.page {
+  max-width: 700px;
+}
+
+.intro {
+  color: #555;
+  margin-bottom: 1.2em;
+}
+
+.tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  padding: 0.6em 0.8em;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #fbfbfb;
+}
+
+.preview {
+  flex: 1 1 40%;
+  min-width: 0;
+}
+
+// Deliberately the same shape and size as the badge on a contribution block, so what is
+// chosen here is what appears on the grid rather than an approximation of it.
+.badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0 0.6em;
+  border-radius: 8px;
+  font-size: 0.85em;
+  line-height: 1.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.swatches {
+  display: flex;
+  gap: 3px;
+}
+
+.swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid rgb(0 0 0 / 20%);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.chosen {
+  outline: 2px solid #202020;
+  outline-offset: 1px;
+}
+
+.reset {
+  padding: 0.2em 0.6em;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background-color: white;
+  cursor: pointer;
+
+  &:disabled {
+    color: #aaa;
+    cursor: default;
+  }
+}
+
+// Fixed width and tabular figures so the column of ratios reads as a column rather than
+// jittering by a pixel per row.
+.ratio {
+  flex: 0 0 auto;
+  width: 4em;
+  text-align: right;
+  color: #666;
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  margin-top: 1.4em;
+}
+
+.saved {
+  color: #2f7d32;
+}

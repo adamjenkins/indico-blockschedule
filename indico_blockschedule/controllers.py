@@ -33,7 +33,7 @@ from indico_blockschedule.util import (ScheduleOverlapError, assign_contribution
                                        get_spanning_blocks, get_unscheduled_contributions, send_ods,
                                        send_xlsx_multisheet, serialize_column, serialize_contribution, serialize_group,
                                        serialize_session_block, serialize_spanning_block)
-from indico_blockschedule.views import WPDisplayBlockSchedule, WPManageBlockSchedule
+from indico_blockschedule.views import WPDisplayBlockSchedule, WPManageBlockSchedule, WPManageTrackColors
 
 
 _HEX_COLOR_RE = re.compile(r'^[0-9a-fA-F]{6}$')
@@ -108,6 +108,7 @@ def _grid_payload(event, day, *, full_day=False):
                 and c.timetable_entry.start_dt.astimezone(event.tzinfo).date() == day]
     unscheduled = get_unscheduled_contributions(event)
     settings = BlockschedulePlugin.event_settings.get_all(event)
+    track_colors = settings['track_colors'] or {}
     spanning_blocks = get_spanning_blocks(event, day)
     session_blocks = get_session_blocks(event, day)
     description_display = settings['description_display']
@@ -129,7 +130,7 @@ def _grid_payload(event, day, *, full_day=False):
                  if config.ENABLE_ROOMBOOKING else []),
         'sessions': [{'id': s.id, 'title': s.title, 'color': s.colors.background if s.colors else None}
                     for s in event.sessions if not s.is_deleted],
-        'tracks': [{'id': t.id, 'title': t.title} for t in event.tracks],
+        'tracks': [{'id': t.id, 'title': t.title, 'color': track_colors.get(str(t.id))} for t in event.tracks],
         'scheduled_contributions': serialized_scheduled,
         'unscheduled_contributions': [serialize_contribution(c, description_display) for c in unscheduled],
         'spanning_blocks': serialized_spanning_blocks,
@@ -155,6 +156,44 @@ class RHBlockScheduleManageBase(RHManageEventBase):
 class RHManageBlockSchedule(RHBlockScheduleManageBase):
     def _process(self):
         return WPManageBlockSchedule.render_template('manage.html', self.event)
+
+
+class RHManageTrackColors(RHBlockScheduleManageBase):
+    """The page where a manager assigns a colour to each of the event's tracks."""
+
+    def _process(self):
+        from indico_blockschedule.plugin import BlockschedulePlugin
+        colors = BlockschedulePlugin.event_settings.get(self.event, 'track_colors') or {}
+        tracks = [{'id': t.id, 'title': t.title, 'color': colors.get(str(t.id))} for t in self.event.tracks]
+        # Handed to the page as an attribute rather than fetched: the only endpoint that
+        # already knows about tracks is grid-data, and pulling an entire day's schedule to
+        # populate a list of ten swatches would be a strange way to spend a request.
+        return WPManageTrackColors.render_template('track_colors.html', self.event, tracks=tracks)
+
+
+class RHTrackColorsUpdate(RHBlockScheduleManageBase):
+    @use_kwargs({
+        # A mapping of track id (as a string, since JSON object keys always are) to 'rrggbb',
+        # or to null to drop back to the default badge colour. Sent whole rather than one
+        # track at a time: the page saves the lot, and a partial write would be a way to end
+        # up with stored colours that do not match what is on screen.
+        'colors': fields.Dict(keys=fields.Str(), values=fields.Str(allow_none=True), required=True),
+    })
+    def _process_PATCH(self, colors):
+        from indico_blockschedule.plugin import BlockschedulePlugin
+        known = {str(t.id) for t in self.event.tracks}
+        stored = {}
+        for track_id, color in colors.items():
+            if track_id not in known:
+                raise BadRequest(f'unknown track: {track_id}')
+            if not color:
+                continue
+            color = color.lstrip('#')
+            if not _HEX_COLOR_RE.match(color):
+                raise BadRequest(f'invalid colour for track {track_id}: {color}')
+            stored[track_id] = color.lower()
+        BlockschedulePlugin.event_settings.set(self.event, 'track_colors', stored)
+        return jsonify(track_colors=stored)
 
 
 class RHManageGridData(RHBlockScheduleManageBase):

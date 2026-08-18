@@ -47,3 +47,11 @@
     width: 4em;
   }
 }
+
+// A link out of the workspace, sitting among controls that are all buttons or inputs -- it
+// needs to read as one of them rather than as body-text prose that happens to be blue.
+.toolbar-link {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  text-decoration: underline;
+}

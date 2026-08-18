@@ -9,7 +9,7 @@ import {Translate} from 'indico/react/i18n';
 import React, {useState} from 'react';
 import {Button, Checkbox, Dropdown, Icon, Input} from 'semantic-ui-react';
 
-import {paleBackground, readableTextColor} from '../colors';
+import {paleBackground, readableTextColor, trackColorMap} from '../colors';
 import {ContributionBlock} from '../ContributionBlock';
 import {buildSlots, durationToPx, GUTTER_PX, minutesToLabel, minutesToOffsetPx, parseTimeToMinutes} from '../gridTime';
 import {BSContribution, BSGridData} from '../types';
@@ -558,6 +558,7 @@ export function ScheduleGrid({
   const contributionsById = new Map(
     [...gridData.scheduled_contributions, ...gridData.unscheduled_contributions].map(c => [c.id, c])
   );
+  const trackColors = trackColorMap(gridData.tracks);
 
   // Which of the "add" forms is expanded, if any -- one at a time (see the panel below).
   const [openForm, setOpenForm] = useState<AddFormKey | null>(null);
@@ -794,6 +795,9 @@ export function ScheduleGrid({
                     dimmed={isDimmed?.(contribution)}
                     draggable
                     showSessionTrack={gridData.show_session_track}
+                    trackColor={
+                      contribution.track_id === null ? null : trackColors.get(contribution.track_id)
+                    }
                     titleMaxLines={gridData.title_max_lines}
                     previewStartMinutes={
                       dragPreview?.contributionId === contribution.id ? dragPreview.startMinutes : null

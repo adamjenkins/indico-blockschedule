@@ -1,0 +1,12 @@
+{% extends 'events/management/base.html' %}
+
+{% block title -%}
+    {%- trans %}Track colours{% endtrans -%}
+{%- endblock %}
+
+{% block content -%}
+    <ind-blockschedule-track-colors
+        event-id="{{ event.id }}"
+        tracks="{{ tracks | tojson | forceescape }}"
+    ></ind-blockschedule-track-colors>
+{%- endblock %}
