@@ -8,6 +8,8 @@ All notable changes to the Block Schedule plugin are documented here.
 
 ## [Unreleased]
 
+## [0.1.3+indico3.3.12] — 2026-08-18
+
 ### Added
 - **The event's own logo in the grid-data payload** (`event_logo_url`), taken
   from Indico's Layout page. Nothing in the schedule uses it; it is there so the
