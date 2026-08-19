@@ -57,8 +57,8 @@ that no newly-added code calls a core API introduced after 3.3.12 — the
 dependency pin is `indico>=3.3` on both branches, so packaging will not catch
 it for you.
 
-This branch's version carries a local marker, `0.1.0+indico3.3.12`, so that the
-wheel built from it (`indico_plugin_blockschedule-0.1.0+indico3.3.12-py3-none-any.whl`)
+This branch's version carries a local marker, `0.1.4+indico3.3.12`, so that the
+wheel built from it (`indico_plugin_blockschedule-0.1.4+indico3.3.12-py3-none-any.whl`)
 is distinguishable from `main`'s after download and in `pip show`. Compiled
 assets are specific to the Indico version they were built against, so an
 unlabelled wheel is a genuine hazard. Keep the marker when bumping the numeric

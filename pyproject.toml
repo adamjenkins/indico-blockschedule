@@ -2,7 +2,7 @@
 name = 'indico-plugin-blockschedule'
 description = 'A simpler, grid-based timetable for Indico events'
 readme = 'README.md'
-version = '0.1.3+indico3.3.12'
+version = '0.1.4+indico3.3.12'
 license = 'MIT'
 authors = [
     { name = 'Adam Jenkins' },

@@ -6,7 +6,7 @@ All notable changes to the Block Schedule plugin are documented here.
 > plugin as a whole; see **Removed** for what this branch drops relative to
 > `main`.
 
-## [Unreleased]
+## [0.1.4+indico3.3.12] — 2026-08-19
 
 ### Fixed
 - **The display grid and the exports now apply Indico's per-contribution access
