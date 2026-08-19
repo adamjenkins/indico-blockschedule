@@ -21,7 +21,7 @@ import unscheduleURL from 'indico-url:plugin_blockschedule.unschedule';
 
 import {Translate} from 'indico/react/i18n';
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Checkbox, Dropdown, Loader} from 'semantic-ui-react';
 
@@ -29,9 +29,12 @@ import {trackColorMap} from '../colors';
 import {FilterBar} from '../FilterBar';
 import {applyFilters, BSFilters, parseFilters, syncFiltersToUrl} from '../filters';
 import {FullscreenButton} from '../FullscreenButton';
+import {minutesToLabel, parseTimeToMinutes} from '../gridTime';
 import {BSContribution, BSDescriptionDisplay, BSGridData} from '../types';
+import {useFullscreenMountNode} from '../useFullscreenMountNode';
 
 import {AutoscheduleForm} from './AutoscheduleForm';
+import {ContributionDragState, startContributionDrag} from './contributionDrag';
 import {ExportButton} from './ExportButton';
 import {GroupManager} from './GroupManager';
 import {ScheduleGrid} from './ScheduleGrid';
@@ -47,7 +50,22 @@ export function ManageApp({eventId}: ManageAppProps) {
   const [gridData, setGridData] = useState<BSGridData | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [filters, setFilters] = useState<BSFilters>(() => parseFilters(window.location.search));
+  // The contribution drag in progress, if any. Owned here rather than by the grid because a
+  // drag can start in the unscheduled panel just as well, and the grid draws the ghost and
+  // live time preview for both.
+  const [contributionDrag, setContributionDrag] = useState<ContributionDragState | null>(null);
+  // Whether the grid shows the whole day rather than just the working-hours window -- the
+  // escape hatch for reaching entries that ended up outside working hours.
+  const [fullDay, setFullDay] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Semantic UI portals (the autoschedule popup, the room-groups modal, the delete
+  // confirmations) must mount inside this container, or going fullscreen leaves them
+  // opening invisibly outside the fullscreened subtree.
+  const mountNode = useFullscreenMountNode(containerRef);
+
+  const onContributionDragStart = (event: React.DragEvent, contribution: BSContribution) =>
+    setContributionDrag(startContributionDrag(event, contribution));
+  const onContributionDragEnd = () => setContributionDrag(null);
 
   const reload = useCallback(
     async (targetDay?: string) => {
@@ -65,9 +83,21 @@ export function ManageApp({eventId}: ManageAppProps) {
   );
 
   useEffect(() => {
-    reload();
+    // Seeded from the URL's `day`, so a shared link opens on the day it was showing.
+    reload(filters.day ?? undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep the day in the query string alongside the filters: the server decides the actual
+  // day (an unknown one falls back to the default), so the URL follows what was really
+  // loaded rather than what was asked for.
+  useEffect(() => {
+    if (day !== null && filters.day !== day) {
+      const next = {...filters, day};
+      setFilters(next);
+      syncFiltersToUrl(next);
+    }
+  }, [day, filters]);
 
   /**
    * Put one changed contribution back into the grid without refetching it.
@@ -77,10 +107,11 @@ export function ManageApp({eventId}: ManageAppProps) {
    * a full grid build per drag -- the single slowest thing a manager waited for
    * -- and this is a drag-and-drop interface, so it happened constantly.
    *
-   * Safe here specifically because the management grid is always requested with
-   * `full_day`, so its start and end are fixed at midnight to midnight and
-   * cannot shift under a moved block. The display grid derives its bounds from
-   * its content and could not be patched this way.
+   * Safe here specifically because the management payload is always requested
+   * with `full_day`, so its bounds are fixed at midnight to midnight -- and the
+   * working-hours window the grid actually renders is derived from state on
+   * every render, so it follows a patched contribution on its own. The display
+   * grid gets server-computed bounds and could not be patched this way.
    */
   const applyContribution = (contribution: BSContribution) => {
     setGridData(current => {
@@ -88,7 +119,9 @@ export function ManageApp({eventId}: ManageAppProps) {
         return current;
       }
       const scheduled = current.scheduled_contributions.filter(c => c.id !== contribution.id);
-      const unscheduled = current.unscheduled_contributions.filter(c => c.id !== contribution.id);
+      const unscheduled = (current.unscheduled_contributions ?? []).filter(
+        c => c.id !== contribution.id
+      );
       // `column_id` is what decides which of the two lists it belongs in --
       // the same rule the server uses when it builds the payload.
       if (contribution.column_id === null) {
@@ -180,6 +213,9 @@ export function ManageApp({eventId}: ManageAppProps) {
   };
 
   const updateSettings = async (data: {
+    day_start_time?: string;
+    day_end_time?: string;
+    slot_minutes?: number;
     gap_minutes?: number;
     snap_minutes?: number;
     row_height_px?: number;
@@ -192,6 +228,9 @@ export function ManageApp({eventId}: ManageAppProps) {
       await reload(day ?? undefined);
     } catch (error) {
       handleAxiosError(error);
+      // A rejected value (e.g. an inverted working-hours pair) leaves the input showing what
+      // was typed; refetching resets it to the value the server actually kept.
+      await reload(day ?? undefined);
     }
   };
 
@@ -300,6 +339,33 @@ export function ManageApp({eventId}: ManageAppProps) {
     }
   };
 
+  // What the grid renders: the working-hours window plus one slot either side, not the
+  // midnight-to-midnight payload the server sends -- at the defaults that is 48 rows of
+  // which only 18 accept drops, and every session began with a half-screen scroll past dead
+  // rows. The window widens to cover anything placed outside working hours (it must stay
+  // visible and reachable), and the "Full day" toolbar toggle restores the whole day.
+  const windowedGridData = useMemo(() => {
+    if (!gridData || fullDay) {
+      return gridData;
+    }
+    const slot = gridData.slot_minutes;
+    let start = parseTimeToMinutes(gridData.working_hours_start) - slot;
+    let end = parseTimeToMinutes(gridData.working_hours_end) + slot;
+    const placed = [
+      ...gridData.scheduled_contributions.filter(c => c.column_id !== null && c.start_minutes !== null),
+      ...gridData.spanning_blocks,
+      ...gridData.session_blocks,
+    ];
+    for (const entry of placed) {
+      const entryStart = entry.start_minutes as number;
+      start = Math.min(start, entryStart);
+      end = Math.max(end, entryStart + (entry.duration_minutes ?? 0));
+    }
+    start = Math.max(0, Math.floor(start / slot) * slot);
+    end = Math.min(24 * 60, Math.ceil(end / slot) * slot);
+    return {...gridData, day_start_time: minutesToLabel(start), day_end_time: minutesToLabel(end)};
+  }, [gridData, fullDay]);
+
   if (!gridData) {
     return <Loader active size="massive" inline="centered" />;
   }
@@ -308,6 +374,7 @@ export function ManageApp({eventId}: ManageAppProps) {
   // prints there: rooms narrowed to the chosen groups/rooms, and talks outside
   // the chosen tracks greyed out rather than removed.
   const {columns: visibleColumns, isDimmed} = applyFilters(gridData, filters);
+  const shownGridData = windowedGridData ?? gridData;
 
   return (
     <div styleName="manage-app" ref={containerRef}>
@@ -320,6 +387,53 @@ export function ManageApp({eventId}: ManageAppProps) {
             onChange={(_e, {value}) => reload(value as string)}
           />
         )}
+        {/* The working-hours window and the slot size are the rules the grid enforces on
+            every drop, so they are edited right here beside the other grid settings -- an
+            out-of-range pair (start after end) comes back as a 400 whose message
+            `handleAxiosError` shows, and the reload snaps the input back. */}
+        <label styleName="gap-setting">
+          <Translate>Day starts</Translate>
+          <input
+            type="time"
+            defaultValue={gridData.working_hours_start}
+            key={gridData.working_hours_start}
+            onBlur={e => {
+              if (e.target.value && e.target.value !== gridData.working_hours_start) {
+                updateSettings({day_start_time: e.target.value});
+              }
+            }}
+          />
+        </label>
+        <label styleName="gap-setting">
+          <Translate>Day ends</Translate>
+          <input
+            type="time"
+            defaultValue={gridData.working_hours_end}
+            key={gridData.working_hours_end}
+            onBlur={e => {
+              if (e.target.value && e.target.value !== gridData.working_hours_end) {
+                updateSettings({day_end_time: e.target.value});
+              }
+            }}
+          />
+        </label>
+        <label styleName="gap-setting">
+          <Translate>Slot (min)</Translate>
+          <input
+            type="number"
+            min={5}
+            max={120}
+            step={5}
+            defaultValue={gridData.slot_minutes}
+            key={gridData.slot_minutes}
+            onBlur={e => {
+              const value = Number(e.target.value);
+              if (e.target.value !== '' && !Number.isNaN(value) && value !== gridData.slot_minutes) {
+                updateSettings({slot_minutes: value});
+              }
+            }}
+          />
+        </label>
         <label styleName="gap-setting">
           <Translate>Gap after contributions (min)</Translate>
           <input
@@ -385,6 +499,15 @@ export function ManageApp({eventId}: ManageAppProps) {
         </label>
         <Checkbox
           toggle
+          label={Translate.string('Full day')}
+          title={Translate.string(
+            'Show the whole day instead of the working-hours window, e.g. to reach entries scheduled outside it'
+          )}
+          checked={fullDay}
+          onChange={(_e, {checked}) => setFullDay(!!checked)}
+        />
+        <Checkbox
+          toggle
           label={Translate.string('Show session/track')}
           checked={gridData.show_session_track}
           onChange={(_e, {checked}) => updateSettings({show_session_track: !!checked})}
@@ -404,6 +527,7 @@ export function ManageApp({eventId}: ManageAppProps) {
           eventId={eventId}
           columns={gridData.columns}
           groups={gridData.groups}
+          mountNode={mountNode}
           onChanged={() => reload(day ?? undefined)}
         />
         <FilterBar
@@ -418,10 +542,16 @@ export function ManageApp({eventId}: ManageAppProps) {
           visibleCount={visibleColumns.length}
         />
         <AutoscheduleForm
+          // Remount when the working-hours settings change, so the form's
+          // seeded default times track the window the grid enforces.
+          key={`${gridData.working_hours_start}-${gridData.working_hours_end}`}
           eventDays={gridData.event_days}
           currentDay={gridData.day}
+          workingHoursStart={gridData.working_hours_start}
+          workingHoursEnd={gridData.working_hours_end}
           sessions={gridData.sessions}
           tracks={gridData.tracks}
+          mountNode={mountNode}
           onRun={runAutoschedule}
         />
         <a styleName="toolbar-link" href={trackColorsURL({event_id: eventId})}>
@@ -433,15 +563,22 @@ export function ManageApp({eventId}: ManageAppProps) {
       <div styleName="layout">
         <UnscheduledPanel
           eventId={eventId}
-          contributions={gridData.unscheduled_contributions}
+          contributions={gridData.unscheduled_contributions ?? []}
+          filters={filters}
           showSessionTrack={gridData.show_session_track}
           trackColors={trackColorMap(gridData.tracks)}
           onUnschedule={unscheduleContribution}
+          onDragStart={onContributionDragStart}
+          onDragEnd={onContributionDragEnd}
         />
         <ScheduleGrid
           eventId={eventId}
-          gridData={{...gridData, columns: visibleColumns}}
+          gridData={{...shownGridData, columns: visibleColumns}}
           isDimmed={isDimmed}
+          contributionDrag={contributionDrag}
+          mountNode={mountNode}
+          onContributionDragStart={onContributionDragStart}
+          onContributionDragEnd={onContributionDragEnd}
           onSchedule={scheduleContribution}
           onUnschedule={unscheduleContribution}
           onCreateColumn={createColumn}

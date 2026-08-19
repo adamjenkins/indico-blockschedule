@@ -100,7 +100,7 @@ def test_autoschedule_keeps_session_together_in_one_column(dummy_event, create_c
 
     start_dt = datetime(2026, 6, 18, 9, 0, tzinfo=UTC)
     end_dt = datetime(2026, 6, 18, 18, 0, tzinfo=UTC)
-    leftover = autoschedule(dummy_event, [column_a, column_b], start_dt, end_dt, gap_minutes=10)
+    leftover = autoschedule(dummy_event, [column_a, column_b], [(start_dt, end_dt)], gap_minutes=10)
 
     assert leftover == []
     assert c1.blockschedule_assignment.column_id == c2.blockschedule_assignment.column_id
@@ -134,7 +134,7 @@ def test_autoschedule_groups_track_when_no_session(dummy_event, create_contribut
 
     start_dt = datetime(2026, 6, 18, 9, 0, tzinfo=UTC)
     end_dt = datetime(2026, 6, 18, 10, 0, tzinfo=UTC)
-    leftover = autoschedule(dummy_event, [column_a], start_dt, end_dt, gap_minutes=0)
+    leftover = autoschedule(dummy_event, [column_a], [(start_dt, end_dt)], gap_minutes=0)
 
     assert leftover == []
     assert c1.blockschedule_assignment.column_id == c2.blockschedule_assignment.column_id
@@ -179,9 +179,62 @@ def test_autoschedule_reports_leftover_when_timespan_too_short(dummy_event, crea
 
     start_dt = datetime(2026, 6, 18, 9, 0, tzinfo=UTC)
     end_dt = datetime(2026, 6, 18, 9, 10, tzinfo=UTC)
-    leftover = autoschedule(dummy_event, [column_a], start_dt, end_dt, gap_minutes=0)
+    leftover = autoschedule(dummy_event, [column_a], [(start_dt, end_dt)], gap_minutes=0)
 
     assert len(leftover) == 1
+
+
+@pytest.mark.usefixtures('request_context')
+def test_autoschedule_confines_every_placement_to_a_days_window(dummy_event, create_contribution):
+    # Two days of one hour each, five half-hour talks: four fit, one is leftover -- and
+    # nothing may land in the overnight gap between the windows, which is exactly where a
+    # single continuous [start..end] interval would have put talks three and four.
+    column_a = BlockScheduleColumn(event=dummy_event, position=1, label='Room A')
+    db.session.add(column_a)
+    db.session.flush()
+    talks = [create_contribution(dummy_event, f'Talk {i}', duration=timedelta(minutes=30)) for i in range(5)]
+    db.session.flush()
+
+    windows = [
+        (datetime(2026, 6, 18, 9, 0, tzinfo=UTC), datetime(2026, 6, 18, 10, 0, tzinfo=UTC)),
+        (datetime(2026, 6, 19, 9, 0, tzinfo=UTC), datetime(2026, 6, 19, 10, 0, tzinfo=UTC)),
+    ]
+    leftover = autoschedule(dummy_event, [column_a], windows, gap_minutes=0)
+
+    assert len(leftover) == 1
+    scheduled = [talk for talk in talks if talk.timetable_entry is not None]
+    assert len(scheduled) == 4
+    for talk in scheduled:
+        entry = talk.timetable_entry
+        assert any(window_start <= entry.start_dt and entry.end_dt <= window_end
+                   for window_start, window_end in windows)
+
+
+@pytest.mark.usefixtures('request_context')
+def test_autoschedule_never_splits_a_run_across_windows(dummy_event, create_contribution):
+    # A session's run is contiguous by construction, so it must land inside a single
+    # day's window even when the tail of an earlier window has room for part of it.
+    column_a = BlockScheduleColumn(event=dummy_event, position=1, label='Room A')
+    db.session.add(column_a)
+    session_ = Session(event=dummy_event, title='Session')
+    db.session.add(session_)
+    db.session.flush()
+    filler = create_contribution(dummy_event, 'Filler', duration=timedelta(minutes=30))
+    c1 = create_contribution(dummy_event, 'Talk 1', duration=timedelta(minutes=30), session=session_)
+    c2 = create_contribution(dummy_event, 'Talk 2', duration=timedelta(minutes=30), session=session_)
+    db.session.flush()
+
+    windows = [
+        (datetime(2026, 6, 18, 9, 0, tzinfo=UTC), datetime(2026, 6, 18, 9, 30, tzinfo=UTC)),
+        (datetime(2026, 6, 19, 9, 0, tzinfo=UTC), datetime(2026, 6, 19, 10, 0, tzinfo=UTC)),
+    ]
+    leftover = autoschedule(dummy_event, [column_a], windows, gap_minutes=0)
+
+    assert leftover == []
+    # The hour-long run only fits the second window; the filler takes whichever
+    # half-hour is left over.
+    assert c1.timetable_entry.start_dt.date() == c2.timetable_entry.start_dt.date()
+    assert filler.timetable_entry is not None
 
 
 @pytest.mark.usefixtures('request_context')
@@ -206,7 +259,7 @@ def test_autoschedule_placement_order_is_randomized(dummy_event, create_contribu
 
     start_dt = datetime(2026, 6, 18, 9, 0, tzinfo=UTC)
     end_dt = datetime(2026, 6, 18, 18, 0, tzinfo=UTC)
-    autoschedule(dummy_event, [column_a], start_dt, end_dt, gap_minutes=0)
+    autoschedule(dummy_event, [column_a], [(start_dt, end_dt)], gap_minutes=0)
 
     assert calls  # random.shuffle was actually invoked on the standalone batch (and/or groups)
 
@@ -384,7 +437,7 @@ def test_autoschedule_does_not_double_book_a_manually_scheduled_contribution(dum
 
     start_dt = datetime(2026, 6, 18, 9, 0, tzinfo=UTC)
     end_dt = datetime(2026, 6, 18, 11, 0, tzinfo=UTC)
-    leftover = autoschedule(dummy_event, [column_a], start_dt, end_dt, gap_minutes=0)
+    leftover = autoschedule(dummy_event, [column_a], [(start_dt, end_dt)], gap_minutes=0)
 
     assert leftover == []
     for contribution in (auto1, auto2):
@@ -410,7 +463,7 @@ def test_autoschedule_excludes_contributions_by_session_and_track(dummy_event, c
 
     start_dt = datetime(2026, 6, 18, 9, 0, tzinfo=UTC)
     end_dt = datetime(2026, 6, 18, 18, 0, tzinfo=UTC)
-    leftover = autoschedule(dummy_event, [column_a], start_dt, end_dt, gap_minutes=0,
+    leftover = autoschedule(dummy_event, [column_a], [(start_dt, end_dt)], gap_minutes=0,
                            exclude_session_ids={session_.id}, exclude_track_ids={track.id})
 
     assert leftover == []  # excluded contributions are skipped entirely, not reported as leftover

@@ -85,11 +85,13 @@ export interface BSGridData {
   columns: BSColumn[];
   groups: BSGroup[];
   roombooking_enabled: boolean;
-  rooms: BSRoom[];
+  /** Management payload only; the display endpoint omits it. */
+  rooms?: BSRoom[];
   sessions: BSSession[];
   tracks: BSTrack[];
   scheduled_contributions: BSContribution[];
-  unscheduled_contributions: BSContribution[];
+  /** Management payload only; the display endpoint omits it. */
+  unscheduled_contributions?: BSContribution[];
   spanning_blocks: BSSpanningBlock[];
   session_blocks: BSSessionBlock[];
   slot_minutes: number;

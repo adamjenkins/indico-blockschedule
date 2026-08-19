@@ -39,8 +39,17 @@
   padding: 0.4em;
   background-color: #f0f0f0;
   font-weight: bold;
-  cursor: text;
   border-radius: 3px;
+}
+
+// Only the title is click-to-edit (the text cursor advertises exactly that surface); the
+// rest of the header carries the width/colour inputs and the delete icon, which must not
+// look or act like part of the rename target.
+.column-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: text;
 }
 
 .color-input {
@@ -225,6 +234,39 @@
   box-shadow: 0 2px 6px rgb(0 0 0 / 40%);
 }
 
+// The ghost announces a refused position by turning red while the cursor is still over it,
+// so a doomed drop is telegraphed before it is completed rather than silently bounced after.
+.drag-ghost-invalid {
+  background-color: rgb(252 235 235 / 90%);
+  border-color: #c62828;
+}
+
+.drag-ghost-tooltip-invalid {
+  background-color: #c62828;
+  border-color: #7f1010;
+}
+
+// Relative to the tooltip's 1.5em, so the reason reads as a caption under the big time.
+.drag-ghost-reason {
+  display: block;
+  font-weight: normal;
+  font-size: 0.6em;
+}
+
+// Names the rule a refused drop just hit. Sticky, so it is visible wherever in the day the
+// drop happened; sits above the (also sticky) header row.
+.drop-refusal {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin-bottom: 0.5em;
+  padding: 0.5em 0.8em;
+  background-color: #c62828;
+  color: white;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
 .spanning-block {
   position: absolute;
   right: 0;
@@ -244,4 +286,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+// Applied to spanning blocks while a contribution drag is live: the bar has no drop handlers
+// of its own, so unless every pointer event falls through to the column tracks beneath it,
+// its whole time band is a dead drop zone across all columns at once.
+.spanning-block-inert {
+  pointer-events: none;
 }

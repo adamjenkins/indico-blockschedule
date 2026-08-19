@@ -29,8 +29,11 @@ down the rows, rooms run across the columns.
   is what makes a 30-room schedule printable, one floor or one track at a time.
   Tracks are offered as groups automatically. Filtering by track keeps the rooms
   that host those talks and greys out the rest of each room's programme, so the
-  sheet still shows when a room is busy. The current filter lives in the URL, so
-  a particular view can be bookmarked, shared, or reprinted exactly.
+  sheet still shows when a room is busy. The current filter — and the day being
+  shown — lives in the URL, so a particular view can be bookmarked, shared, or
+  reprinted exactly. The track filter narrows the management page's
+  unscheduled panel too, which also has a text search over titles and
+  speakers.
 - Both the management and display grids have a fullscreen toggle.
 - Columns can be themed with a color (saturated on the header, a pale
   tint across the column body) and reordered by dragging one column
@@ -51,9 +54,12 @@ down the rows, rooms run across the columns.
   merged cell per presentation carrying its room, session, track,
   author(s), and date/time.
 - Printing the display page (any of A4/A3/A2, portrait or landscape)
-  shows just the grid and the event title, not the surrounding site
-  chrome, and respects the page's own "Black and white" toggle.
-- An autoscheduler fills a given timespan for you: it keeps a session's
+  shows just the grid under a header carrying the event title, the day and
+  the active filter — not the surrounding site chrome — and respects the
+  page's own "Black and white" toggle.
+- An autoscheduler fills a given timespan for you — one day or several, in
+  which case it fills each day's working hours in turn, never the nights in
+  between: it keeps a session's
   (or, failing that, a track's) contributions together and back-to-back
   in the same column, avoids parallel-scheduling the same session/track
   across different columns, places everything else wherever there's
@@ -77,11 +83,15 @@ down the rows, rooms run across the columns.
   otherwise crowd out the speaker, badges and time inside a block. The
   full title is still there on hover, and the limit applies to the
   management grid too, so what you arrange is what gets printed.
-- Contributions can never overlap in the same room/time, and dropping one
-  outside the event's configured working hours (shown visibly greyed
-  out) just bounces back instead of scheduling it. A live, cursor-
-  following preview shows the time a dragged contribution would land on
-  before you drop it.
+- Contributions can never overlap in the same room/time, and neither can
+  one be dropped outside the event's working hours. A live, cursor-
+  following preview shows the time a dragged contribution would land on;
+  it turns red over a position that would be refused, and a refused drop
+  names the rule it hit rather than bouncing back silently.
+- The working hours and the grid's slot size are set per event, right in
+  the management toolbar. The management grid shows just that window —
+  plus anything scheduled outside it, which stays visible and reachable —
+  with a "Full day" toggle for the whole midnight-to-midnight day.
 - Sticky column headers and a sticky, scrollable unscheduled-
   contributions panel, both capped to the viewport height. On the display
   page a wide grid also gets a horizontal scrollbar pinned to the bottom

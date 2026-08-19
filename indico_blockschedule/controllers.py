@@ -31,9 +31,10 @@ from indico_blockschedule.models.groups import BlockScheduleGroup
 from indico_blockschedule.models.session_blocks import BlockScheduleSessionBlock
 from indico_blockschedule.util import (ScheduleOverlapError, assign_contribution_to_column, autoschedule,
                                        build_export_rows, build_export_sheets, clear_schedule, event_contributions,
-                                       get_session_blocks, get_spanning_blocks, get_unscheduled_contributions, send_ods,
-                                       send_xlsx_multisheet, serialize_column, serialize_contribution, serialize_group,
-                                       serialize_session_block, serialize_spanning_block)
+                                       get_session_blocks, get_spanning_blocks, get_unscheduled_contributions,
+                                       parse_hhmm, send_ods, send_xlsx_multisheet, serialize_column,
+                                       serialize_contribution, serialize_group, serialize_session_block,
+                                       serialize_spanning_block)
 from indico_blockschedule.views import WPDisplayBlockSchedule, WPManageBlockSchedule, WPManageTrackColors
 
 
@@ -69,8 +70,32 @@ def _event_day(event, day_str):
 
 
 def _combine_local(event, day, minutes):
-    naive = datetime.combine(day, time(hour=minutes // 60, minute=minutes % 60))
+    # Every handler funnels its client-supplied minutes through here, so one range
+    # check covers them all: a value no time of day could hold gets a 400 rather
+    # than the 500 a bare `time()` call would raise. 24:00 stays valid as an
+    # end-of-day bound and lands on the following midnight.
+    if not 0 <= minutes <= 24 * 60:
+        raise BadRequest('minutes must be between 0 and 1440')
+    naive = datetime.combine(day, time()) + timedelta(minutes=minutes)
     return event.tzinfo.localize(naive).astimezone(UTC)
+
+
+def _day_windows(event, start_day, start_minutes, end_day, end_minutes, work_start, work_end):
+    """Per-day autoscheduling windows: one `(start_dt, end_dt)` pair for each day of
+    `[start_day..end_day]`, clipped to the working hours `[work_start, work_end)` (in
+    minutes) -- with the caller's own start/end minutes clipping the first and last day
+    further. A day whose window closes before it opens (say, a first day starting after
+    working hours end) is dropped rather than emitted empty.
+    """
+    windows = []
+    day = start_day
+    while day <= end_day:
+        window_start = max(work_start, start_minutes) if day == start_day else work_start
+        window_end = min(work_end, end_minutes) if day == end_day else work_end
+        if window_start < window_end:
+            windows.append((_combine_local(event, day, window_start), _combine_local(event, day, window_end)))
+        day += timedelta(days=1)
+    return windows
 
 
 def _minutes_to_hhmm(minutes):
@@ -94,7 +119,7 @@ def _day_bounds(scheduled, spanning_blocks, slot_minutes, settings):
     return _minutes_to_hhmm(start), _minutes_to_hhmm(end)
 
 
-def _grid_payload(event, day, user=None, *, full_day=False, accessible_only=False):
+def _grid_payload(event, day, user=None, *, full_day=False, accessible_only=False, manage=True):
     from indico_blockschedule.plugin import BlockschedulePlugin
     columns = (BlockScheduleColumn.query
               .with_parent(event)
@@ -114,7 +139,6 @@ def _grid_payload(event, day, user=None, *, full_day=False, accessible_only=Fals
     scheduled = [c for c in contributions
                 if c.timetable_entry is not None
                 and c.timetable_entry.start_dt.astimezone(event.tzinfo).date() == day]
-    unscheduled = get_unscheduled_contributions(event, contributions)
     settings = BlockschedulePlugin.event_settings.get_all(event)
     track_colors = settings['track_colors'] or {}
     spanning_blocks = get_spanning_blocks(event, day)
@@ -127,7 +151,7 @@ def _grid_payload(event, day, user=None, *, full_day=False, accessible_only=Fals
     else:
         day_start_time, day_end_time = _day_bounds(serialized_scheduled, serialized_spanning_blocks,
                                                     settings['slot_minutes'], settings)
-    return {
+    payload = {
         'day': day.isoformat(),
         'event_days': [d.isoformat() for d in event.iter_days()],
         'event_title': event.title,
@@ -141,13 +165,10 @@ def _grid_payload(event, day, user=None, *, full_day=False, accessible_only=Fals
         'columns': [serialize_column(c) for c in columns],
         'groups': [serialize_group(g) for g in groups],
         'roombooking_enabled': config.ENABLE_ROOMBOOKING,
-        'rooms': ([{'id': r.id, 'full_name': r.full_name} for r in Room.query.filter_by(is_deleted=False)]
-                 if config.ENABLE_ROOMBOOKING else []),
         'sessions': [{'id': s.id, 'title': s.title, 'color': s.colors.background if s.colors else None}
                     for s in event.sessions if not s.is_deleted],
         'tracks': [{'id': t.id, 'title': t.title, 'color': track_colors.get(str(t.id))} for t in event.tracks],
         'scheduled_contributions': serialized_scheduled,
-        'unscheduled_contributions': [serialize_contribution(c, user, description_display) for c in unscheduled],
         'spanning_blocks': serialized_spanning_blocks,
         'session_blocks': [serialize_session_block(b) for b in session_blocks],
         'slot_minutes': settings['slot_minutes'],
@@ -162,6 +183,28 @@ def _grid_payload(event, day, user=None, *, full_day=False, accessible_only=Fals
         'description_display': description_display,
         'title_max_lines': settings['title_max_lines'],
     }
+    if manage:
+        # Management-only halves of the payload. `rooms` is an instance-wide,
+        # unpaginated directory (with Room Booking enabled it lists the whole
+        # organisation), and `unscheduled_contributions` is the most sensitive
+        # slice of the event -- neither is read by the display page or the phone
+        # app, so neither leaves the manager's own view.
+        payload['rooms'] = ([{'id': r.id, 'full_name': r.full_name} for r in Room.query.filter_by(is_deleted=False)]
+                            if config.ENABLE_ROOMBOOKING else [])
+        payload['unscheduled_contributions'] = [serialize_contribution(c, user, description_display)
+                                                for c in get_unscheduled_contributions(event, contributions)]
+    return payload
+
+
+def _conditional_response(response):
+    """An `ETag` plus `private, must-revalidate` turns an unchanged grid poll into a
+    bodyless 304 -- the phone app already sends `If-None-Match` and keeps an etag per
+    cached day. This saves bandwidth only: the payload is still built to be hashed.
+    """
+    response.add_etag()
+    response.cache_control.private = True
+    response.cache_control.must_revalidate = True
+    return response.make_conditional(request)
 
 
 class RHBlockScheduleManageBase(RHManageEventBase):
@@ -214,7 +257,7 @@ class RHTrackColorsUpdate(RHBlockScheduleManageBase):
 class RHManageGridData(RHBlockScheduleManageBase):
     def _process(self):
         day = _event_day(self.event, request.args.get('day'))
-        return jsonify(_grid_payload(self.event, day, session.user, full_day=True))
+        return _conditional_response(jsonify(_grid_payload(self.event, day, session.user, full_day=True)))
 
 
 class RHColumnCreate(RHBlockScheduleManageBase):
@@ -253,19 +296,19 @@ class RHColumnDeleteUpdate(RHBlockScheduleManageBase):
                        .first_or_404())
 
     @use_kwargs({
+        # No `position` here: a raw position assignment trips the `(event_id, position)`
+        # unique constraint whenever the target slot is taken -- reordering goes through
+        # `RHColumnReorder`, whose two-phase dance exists for exactly that reason.
         'label': fields.Str(load_default=None),
-        'position': fields.Int(load_default=None),
         'color': fields.Str(load_default=None, allow_none=True),
         'min_width_px': fields.Int(load_default=None),
     })
-    def _process_PATCH(self, label, position, color, min_width_px):
+    def _process_PATCH(self, label, color, min_width_px):
         if label is not None:
             label = label.strip()
             if not label:
                 raise BadRequest('label cannot be empty')
             self.column.label = label
-        if position is not None:
-            self.column.position = position
         if color is not None:
             self.column.color = _validate_color(color) if color else None
         if min_width_px is not None:
@@ -282,6 +325,23 @@ class RHColumnDeleteUpdate(RHBlockScheduleManageBase):
             contribution = assignment.contribution
             if contribution.timetable_entry is not None:
                 delete_timetable_entry(contribution.timetable_entry)
+        # Session-block banners list the columns they span by id, with nothing at the
+        # database level tying those ids to this table -- prune the deleted id from
+        # each list (reassigned wholesale: ARRAY columns don't track in-place edits)
+        # and drop banners left spanning nothing, since a banner whose every column is
+        # gone renders nowhere and its only delete control lives on the rendered bar.
+        blocks = (BlockScheduleSessionBlock.query
+                  .filter(BlockScheduleSessionBlock.event_id == self.event.id,
+                          BlockScheduleSessionBlock.column_ids.isnot(None))
+                  .all())
+        for block in blocks:
+            if self.column.id not in block.column_ids:
+                continue
+            remaining = [cid for cid in block.column_ids if cid != self.column.id]
+            if remaining:
+                block.column_ids = remaining
+            else:
+                db.session.delete(block)
         db.session.delete(self.column)
         db.session.flush()
         return jsonify(success=True)
@@ -411,10 +471,27 @@ class RHUnscheduleContribution(RHBlockScheduleManageBase):
 
 _DESCRIPTION_DISPLAY_CHOICES = ('hidden', 'full', 'truncated')
 _MAX_TITLE_LINES = 20
+_HHMM_RE = re.compile(r'^\d{2}:\d{2}$')
+_MIN_SLOT_MINUTES = 5
+_MAX_SLOT_MINUTES = 120
+
+
+def _hhmm_setting_minutes(value, name):
+    """Validate a stored-as-`'HH:MM'` time setting and return it as minutes.
+
+    `24:00` passes -- as an end-of-day bound it is meaningful -- while anything no
+    clock could show (`09:75`, `25:00`) or that isn't `HH:MM` at all is a 400.
+    """
+    if not _HHMM_RE.match(value or '') or int(value[3:]) > 59 or parse_hhmm(value) > 24 * 60:
+        raise BadRequest(f'{name} must be a valid HH:MM time')
+    return parse_hhmm(value)
 
 
 class RHSettingsUpdate(RHBlockScheduleManageBase):
     @use_kwargs({
+        'day_start_time': fields.Str(load_default=None),
+        'day_end_time': fields.Str(load_default=None),
+        'slot_minutes': fields.Int(load_default=None),
         'gap_minutes': fields.Int(load_default=None),
         'snap_minutes': fields.Int(load_default=None),
         'row_height_px': fields.Int(load_default=None),
@@ -422,10 +499,27 @@ class RHSettingsUpdate(RHBlockScheduleManageBase):
         'description_display': fields.Str(load_default=None),
         'title_max_lines': fields.Int(load_default=None),
     })
-    def _process_PATCH(self, gap_minutes, snap_minutes, row_height_px, show_session_track, description_display,
-                       title_max_lines):
+    def _process_PATCH(self, day_start_time, day_end_time, slot_minutes, gap_minutes, snap_minutes, row_height_px,
+                       show_session_track, description_display, title_max_lines):
         from indico_blockschedule.plugin import BlockschedulePlugin
         settings = BlockschedulePlugin.event_settings
+        if day_start_time is not None or day_end_time is not None:
+            # Validated as a pair: whichever half isn't in the request still bounds the
+            # other, so a lone update can never invert the working-hours window.
+            start = (_hhmm_setting_minutes(day_start_time, 'day_start_time') if day_start_time is not None
+                     else parse_hhmm(settings.get(self.event, 'day_start_time')))
+            end = (_hhmm_setting_minutes(day_end_time, 'day_end_time') if day_end_time is not None
+                   else parse_hhmm(settings.get(self.event, 'day_end_time')))
+            if start >= end:
+                raise BadRequest('day_start_time must be before day_end_time')
+            if day_start_time is not None:
+                settings.set(self.event, 'day_start_time', day_start_time)
+            if day_end_time is not None:
+                settings.set(self.event, 'day_end_time', day_end_time)
+        if slot_minutes is not None:
+            if not _MIN_SLOT_MINUTES <= slot_minutes <= _MAX_SLOT_MINUTES:
+                raise BadRequest(f'slot_minutes must be between {_MIN_SLOT_MINUTES} and {_MAX_SLOT_MINUTES}')
+            settings.set(self.event, 'slot_minutes', slot_minutes)
         if gap_minutes is not None:
             if gap_minutes < 0:
                 raise BadRequest('gap_minutes cannot be negative')
@@ -466,8 +560,10 @@ class RHAutoSchedule(RHBlockScheduleManageBase):
     def _process_POST(self, start_day, start_minutes, end_day, end_minutes, clear,
                       exclude_session_ids, exclude_track_ids):
         from indico_blockschedule.plugin import BlockschedulePlugin
-        start_dt = _combine_local(self.event, _event_day(self.event, start_day), start_minutes)
-        end_dt = _combine_local(self.event, _event_day(self.event, end_day), end_minutes)
+        first_day = _event_day(self.event, start_day)
+        last_day = _event_day(self.event, end_day)
+        start_dt = _combine_local(self.event, first_day, start_minutes)
+        end_dt = _combine_local(self.event, last_day, end_minutes)
         if end_dt <= start_dt:
             raise BadRequest('End must be after start')
         columns = (BlockScheduleColumn.query
@@ -484,8 +580,14 @@ class RHAutoSchedule(RHBlockScheduleManageBase):
             clear_schedule(self.event, columns, start_dt, end_dt,
                           exclude_session_ids=exclude_session_ids, exclude_track_ids=exclude_track_ids)
             return jsonify(cleared=True, unscheduled_count=0, unscheduled_titles=[])
-        gap_minutes = BlockschedulePlugin.event_settings.get(self.event, 'gap_minutes')
-        leftover = autoschedule(self.event, columns, start_dt, end_dt, gap_minutes,
+        # One window per day, clipped to the working hours: a multi-day request must
+        # fill each day's hours in turn, never the overnight gaps between them.
+        settings = BlockschedulePlugin.event_settings.get_all(self.event)
+        windows = _day_windows(self.event, first_day, start_minutes, last_day, end_minutes,
+                               parse_hhmm(settings['day_start_time']), parse_hhmm(settings['day_end_time']))
+        if not windows:
+            raise BadRequest('The selected range is entirely outside working hours')
+        leftover = autoschedule(self.event, columns, windows, settings['gap_minutes'],
                                exclude_session_ids=exclude_session_ids, exclude_track_ids=exclude_track_ids)
         return jsonify(cleared=False, unscheduled_count=len(leftover),
                        unscheduled_titles=[c.title for c in leftover])
@@ -662,7 +764,8 @@ class RHDisplayGridData(RHDisplayEventBase):
         day = _event_day(self.event, request.args.get('day'))
         # `accessible_only`: the event being public does not make every
         # contribution in it public, and this payload is cached to phones.
-        return jsonify(_grid_payload(self.event, day, session.user, accessible_only=True))
+        return _conditional_response(jsonify(_grid_payload(self.event, day, session.user, accessible_only=True,
+                                                           manage=False)))
 
 
 class RHDisplayExport(RHDisplayEventBase):

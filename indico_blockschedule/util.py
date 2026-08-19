@@ -305,8 +305,31 @@ def _earliest_free_start(occupied, candidate_start, duration, gap, end_dt):
     return candidate_start
 
 
-def autoschedule(event, columns, start_dt, end_dt, gap_minutes, *, exclude_session_ids=None, exclude_track_ids=None):
-    """Automatically schedule unscheduled contributions within [start_dt, end_dt).
+def _earliest_free_start_in_windows(occupied, windows, candidate_start, duration, gap):
+    """Earliest start >= `candidate_start` such that `[start, start + duration)` lies
+    entirely inside a single window of `windows` (sorted `(start_dt, end_dt)` pairs)
+    without overlapping any interval in `occupied`, or `None` if no window has room.
+    A placement never straddles a window boundary: whatever doesn't fit before a
+    window's end is offered the whole of the next window instead.
+    """
+    for window_start, window_end in windows:
+        start = max(candidate_start, window_start)
+        if start >= window_end:
+            continue
+        found = _earliest_free_start(occupied, start, duration, gap, window_end)
+        if found is not None:
+            return found
+    return None
+
+
+def autoschedule(event, columns, windows, gap_minutes, *, exclude_session_ids=None, exclude_track_ids=None):
+    """Automatically schedule unscheduled contributions into `windows`.
+
+    `windows` is a list of `(start_dt, end_dt)` pairs -- one per day of the
+    requested range, clipped to the event's working hours (see
+    `RHAutoSchedule`) -- and nothing is ever placed outside one of them:
+    a multi-day range therefore fills each day's working hours in turn
+    rather than running overnight through the gaps between days.
 
     Contributions sharing a session or, failing that, a track are packed
     as a contiguous run into whichever column has the earliest free slot
@@ -319,15 +342,17 @@ def autoschedule(event, columns, start_dt, end_dt, gap_minutes, *, exclude_sessi
     Never overlaps a contribution already sitting in a column — including
     ones placed there manually, outside of this run — by tracking each
     column's actual booked intervals and skipping past them rather than
-    assuming every column is empty from `start_dt` onwards.
+    assuming every column is empty from the first window onwards.
     Contributions belonging to a session/track in `exclude_session_ids`/
     `exclude_track_ids` are left untouched (not placed, not counted as
     leftover either -- they're simply not offered to the scheduler at all).
     Returns the list of contributions that couldn't be fit into the
-    timespan.
+    windows.
     """
     exclude_session_ids = exclude_session_ids or set()
     exclude_track_ids = exclude_track_ids or set()
+    windows = sorted(windows)
+    span_start, span_end = windows[0][0], windows[-1][1]
     gap = timedelta(minutes=gap_minutes)
     groups = defaultdict(list)
     standalone = []
@@ -346,8 +371,13 @@ def autoschedule(event, columns, start_dt, end_dt, gap_minutes, *, exclude_sessi
         total = sum((c.duration for c in items), timedelta())
         return total + gap * (len(items) - 1)
 
-    cursors = {column.id: start_dt for column in columns}
-    occupied = {column.id: _occupied_intervals(column, start_dt, end_dt) for column in columns}
+    # `occupied` is the source of truth for what's free: every placement is searched
+    # for from the first window onwards and bumped past the booked intervals, so a run
+    # that had to jump ahead to a later day doesn't strand the free time before it.
+    # `cursors` (the end of each column's latest placement) only orders the candidate
+    # columns, steering work towards whichever column is emptiest.
+    cursors = {column.id: span_start for column in columns}
+    occupied = {column.id: _occupied_intervals(column, span_start, span_end) for column in columns}
 
     def place_run(items):
         items = list(items)
@@ -355,7 +385,7 @@ def autoschedule(event, columns, start_dt, end_dt, gap_minutes, *, exclude_sessi
         duration = run_duration(items)
         candidates = sorted(columns, key=lambda col: cursors[col.id])
         for column in candidates:
-            free_start = _earliest_free_start(occupied[column.id], cursors[column.id], duration, gap, end_dt)
+            free_start = _earliest_free_start_in_windows(occupied[column.id], windows, span_start, duration, gap)
             if free_start is None:
                 continue
             cursor = free_start
@@ -380,8 +410,8 @@ def autoschedule(event, columns, start_dt, end_dt, gap_minutes, *, exclude_sessi
         candidates = sorted(columns, key=lambda col: cursors[col.id])
         placed = False
         for column in candidates:
-            free_start = _earliest_free_start(
-                occupied[column.id], cursors[column.id], contribution.duration, gap, end_dt)
+            free_start = _earliest_free_start_in_windows(
+                occupied[column.id], windows, span_start, contribution.duration, gap)
             if free_start is not None:
                 assign_contribution_to_column(contribution, column, free_start)
                 item_end = free_start + contribution.duration

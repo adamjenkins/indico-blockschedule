@@ -50,9 +50,21 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
   };
 
   useEffect(() => {
-    load();
+    // The URL's `day` is part of the shared view too: without it, a link meaning
+    // "Wednesday's 9th floor" would open on the default day with only the floor restored.
+    load(filters.day ?? undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep the day in the query string alongside the filters. The server decides the actual
+  // day (an unknown one falls back to the default), so the URL follows what really loaded.
+  useEffect(() => {
+    if (gridData && filters.day !== gridData.day) {
+      const next = {...filters, day: gridData.day};
+      setFilters(next);
+      syncFiltersToUrl(next);
+    }
+  }, [gridData, filters]);
 
   if (!gridData) {
     return <Loader active size="massive" inline="centered" />;
@@ -68,6 +80,23 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
   const rowHeightPx = gridData.row_height_px;
   const trackColors = trackColorMap(gridData.tracks);
   const bodyHeight = slots.length * rowHeightPx;
+
+  // What the active filter means in words, for the printed header -- the room names are on
+  // the sheet already, but "which slice of the event is this" is not, and a stack of
+  // filtered prints is indistinguishable without it.
+  const printFilterParts: string[] = [];
+  const roomNames = [
+    ...gridData.groups.filter(g => filters.groupIds.includes(g.id)).map(g => g.title),
+    ...gridData.columns.filter(c => filters.roomIds.includes(c.id)).map(c => c.title),
+  ];
+  if (roomNames.length) {
+    printFilterParts.push(Translate.string('Rooms: {names}', {names: roomNames.join(', ')}));
+  }
+  const trackNames = gridData.tracks.filter(t => filters.trackIds.includes(t.id)).map(t => t.title);
+  if (trackNames.length) {
+    printFilterParts.push(Translate.string('Tracks: {names}', {names: trackNames.join(', ')}));
+  }
+  const printFilterDescription = printFilterParts.length ? printFilterParts.join(' — ') : null;
 
   return (
     <div styleName={blackAndWhite ? 'display-app bs-bw' : 'display-app'} ref={containerRef}>
@@ -103,7 +132,12 @@ export function DisplayApp({eventId, loggedIn}: DisplayAppProps) {
           visibleCount={columns.length}
         />
         <ExportButton eventId={eventId} day={gridData.day} />
-        <PrintButton containerRef={containerRef} eventTitle={gridData.event_title} />
+        <PrintButton
+          containerRef={containerRef}
+          eventTitle={gridData.event_title}
+          day={gridData.day}
+          filterDescription={printFilterDescription}
+        />
         <FullscreenButton targetRef={containerRef} />
       </div>
 
