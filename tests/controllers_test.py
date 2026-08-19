@@ -93,3 +93,32 @@ def test_grid_payload_carries_the_event_logo_url(dummy_event, db):
     # cached copy anywhere can go stale.
     assert payload['event_logo_url'] is not None
     assert 'abc123' in payload['event_logo_url']
+
+
+def test_the_display_payload_hides_a_contribution_the_viewer_cannot_see(db, dummy_event,
+                                                                        dummy_contribution,
+                                                                        request_context):
+    from indico.core.db.sqlalchemy.protection import ProtectionMode
+
+    from indico_blockschedule.util import event_contributions
+
+    dummy_event.protection_mode = ProtectionMode.public
+    dummy_contribution.protection_mode = ProtectionMode.protected
+    db.session.flush()
+
+    # An event being public does not make every contribution in it public, and
+    # this payload is what the phone app caches onto an attendee's device.
+    assert dummy_contribution not in event_contributions(dummy_event, accessible_only=True)
+    assert dummy_contribution in event_contributions(dummy_event)
+
+
+def test_the_management_payload_still_shows_everything(db, dummy_event, dummy_contribution,
+                                                       request_context):
+    from indico.core.db.sqlalchemy.protection import ProtectionMode
+
+    dummy_contribution.protection_mode = ProtectionMode.protected
+    db.session.flush()
+    # A manager arranging the grid has to see the talks they are arranging.
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date(), full_day=True)
+    titles = [c['title'] for c in payload['unscheduled_contributions']]
+    assert dummy_contribution.title in titles

@@ -19,7 +19,10 @@ down the rows, rooms run across the columns.
   Indico).
 - The public display page links each scheduled block straight to its
   contribution page, and has a toggle to highlight the viewer's starred
-  contributions while dimming the rest.
+  contributions while dimming the rest. It shows only the contributions the
+  viewer is allowed to see: a talk protected inside a public event is absent
+  from the grid, from the data the phone app caches, and from the public
+  spreadsheet exports.
 - Rooms can be gathered into named groups (by floor, building, or any other
   useful set), and a room can be in several groups at once. Both grids can then
   be narrowed to any combination of groups, individual rooms, and tracks — which
