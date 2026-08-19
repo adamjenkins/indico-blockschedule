@@ -33,6 +33,7 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
+
 tally = {'passed': 0, 'failed': 0}
 
 
