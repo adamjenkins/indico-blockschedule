@@ -11,7 +11,7 @@ import groupsUpdateURL from 'indico-url:plugin_blockschedule.groups_delete_updat
 import {Translate} from 'indico/react/i18n';
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 import React, {useState} from 'react';
-import {Button, Dropdown, Icon, Input, Modal} from 'semantic-ui-react';
+import {Button, Confirm, Dropdown, Icon, Input, Modal} from 'semantic-ui-react';
 
 import {BSColumn, BSGroup} from '../types';
 
@@ -21,6 +21,10 @@ interface GroupManagerProps {
   eventId: number;
   columns: BSColumn[];
   groups: BSGroup[];
+  /** Where the modal (and its delete confirmation) portal to -- inside the fullscreenable
+   * container, or they would open invisibly whenever the workspace is fullscreen, dimming
+   * and focus-trapping a page the user cannot see. */
+  mountNode?: HTMLElement;
   onChanged: () => void;
 }
 
@@ -32,10 +36,13 @@ interface GroupManagerProps {
  * room may sit in any number of them, so membership is edited as a plain
  * multi-select per group rather than a drag-and-drop partition.
  */
-export function GroupManager({eventId, columns, groups, onChanged}: GroupManagerProps) {
+export function GroupManager({eventId, columns, groups, mountNode, onChanged}: GroupManagerProps) {
   const [open, setOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [busy, setBusy] = useState(false);
+  // The group whose trash icon was clicked, held until the deletion is confirmed or
+  // abandoned -- deleting is one click on a small icon and cannot be undone.
+  const [pendingDelete, setPendingDelete] = useState<BSGroup | null>(null);
 
   const columnOptions = columns.map(column => ({key: column.id, value: column.id, text: column.title}));
 
@@ -89,7 +96,7 @@ export function GroupManager({eventId, columns, groups, onChanged}: GroupManager
         content={Translate.string('Room groups')}
         onClick={() => setOpen(true)}
       />
-      <Modal open={open} onClose={() => setOpen(false)} closeIcon size="small">
+      <Modal open={open} onClose={() => setOpen(false)} closeIcon size="small" mountNode={mountNode}>
         <Modal.Header>{Translate.string('Room groups')}</Modal.Header>
         <Modal.Content>
           <p styleName="hint">
@@ -131,7 +138,7 @@ export function GroupManager({eventId, columns, groups, onChanged}: GroupManager
                 name="trash"
                 link
                 title={Translate.string('Delete this group')}
-                onClick={() => remove(group)}
+                onClick={() => setPendingDelete(group)}
               />
             </div>
           ))}
@@ -155,6 +162,28 @@ export function GroupManager({eventId, columns, groups, onChanged}: GroupManager
           </div>
         </Modal.Content>
       </Modal>
+      <Confirm
+        open={pendingDelete !== null}
+        size="mini"
+        content={
+          pendingDelete
+            ? Translate.string(
+                'Delete the group "{title}"? Its {count} room(s) are not affected.',
+                {title: pendingDelete.title, count: pendingDelete.column_ids.length}
+              )
+            : undefined
+        }
+        cancelButton={Translate.string('Cancel')}
+        confirmButton={Translate.string('Delete')}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) {
+            remove(pendingDelete);
+          }
+          setPendingDelete(null);
+        }}
+        mountNode={mountNode}
+      />
     </>
   );
 }

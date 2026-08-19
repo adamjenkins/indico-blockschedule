@@ -16,6 +16,43 @@ All notable changes to the Block Schedule plugin are documented here.
   the app. Core's own timetable filters each entry this way; the plugin now does
   too. Management endpoints are unchanged: a manager arranging the grid still
   sees everything in it.
+- **An out-of-range `start_minutes` is a 400, not a 500.** Every handler's
+  client-supplied minutes funnel through one range check now; `24:00` stays
+  valid as an end-of-day bound and means the following midnight.
+- **The column PATCH no longer accepts `position`.** A raw position write trips
+  the `(event_id, position)` unique constraint whenever the target slot is
+  taken; reordering goes through the reorder endpoint's two-phase renumbering,
+  which exists for exactly that reason.
+- **Deleting a column prunes it from session-block banners.** The banners list
+  the columns they span by id, with nothing at the database level tying those
+  ids to the columns table, so a deleted column left dangling ids behind. A
+  banner left spanning nothing at all is deleted along with the column: it
+  renders nowhere, and its only delete control lives on the rendered bar.
+- **A spanning block no longer swallows drops across its whole time band.** The
+  bar spans the full grid width as a sibling of the column tracks and has no
+  drop handlers of its own, so while a contribution drag is live it now lets
+  pointer events fall through to the columns beneath it. Outside a drag it
+  stays interactive — its drag handle, colour input and close icon all need
+  the pointer.
+- **Popups and modals now open visibly in fullscreen.** The autoschedule popup,
+  the room-groups modal and the new delete confirmations portal into
+  `document.body` by default, which the Fullscreen API does not paint — so they
+  opened invisibly, and a modal then also trapped focus in content the user
+  could not see. They all mount inside the fullscreenable container now, the
+  same fix the display page's print popup got in 0.1.1.
+- **A drag from the unscheduled panel now shows the same ghost and live time
+  preview as a drag within the grid.** The drag state moved up to the
+  workspace, shared by both origins, and pointer tracking is document-wide for
+  the duration of the drag — a drag that starts in the panel spends its first
+  stretch outside any column track.
+- **Printing can no longer leave the page blank, or resize someone else's
+  print.** Restoring the page — everything but the grid is `display: none`
+  during the print — no longer hinges on `afterprint` alone: leaving print
+  mode and a timeout after `window.print()` returns both back it up, and
+  whichever fires first wins. The injected `@page` style is removed afterwards
+  too, rather than silently imposing this print's paper size on anything else
+  the page prints. And blocks are no longer sliced in half across page
+  boundaries, which made both halves unreadable.
 
 ### Changed
 - **The grid payload is built with one query instead of hundreds.** Walking the
@@ -37,6 +74,24 @@ All notable changes to the Block Schedule plugin are documented here.
   via `requestAnimationFrame`, and the column background cells are memoised.
   Measured over sixty drag events on a 30-column, 200-block grid: **no DOM nodes
   added or removed at all**, where before it was the whole grid each time.
+- **The autoscheduler fills each day's working hours, not one continuous
+  span.** A multi-day request used to be a single `[start..end]` interval, so
+  it packed talks straight through the nights between days. It now builds one
+  window per day, clipped to the event's working hours — the requested start
+  and end times clip the first and last day further — and nothing is ever
+  placed outside a window, nor is a session's contiguous run ever split across
+  two of them. The form's proposed times come from the working-hours settings
+  instead of a hard-coded 09:00–18:00.
+- **The display payload no longer carries `rooms` or
+  `unscheduled_contributions`.** Neither is read by the display page or the
+  phone app, and they were the payload's most sensitive parts: `rooms` is an
+  instance-wide, unpaginated directory once Room Booking is on, and the
+  unscheduled list is exactly the slice of the event nobody chose to publish.
+  Both remain in the management payload.
+- **Grid data is served with an `ETag`, and an unchanged poll is a bodyless
+  304.** The phone app already sends `If-None-Match` and keeps an etag per
+  cached day. This saves bandwidth only — the payload is still built in order
+  to be hashed.
 
 ### Added
 - `scripts/verify.py` — browser checks for the three behaviours above, asserted
@@ -44,6 +99,51 @@ All notable changes to the Block Schedule plugin are documented here.
   `DataTransfer`: Playwright's own drag helpers send mouse events, which do not
   produce an HTML5 drag, so the handlers never fire and everything passes for
   the wrong reason.
+- **Working hours and the slot size are edited from the management toolbar.**
+  `day_start_time`, `day_end_time` and `slot_minutes` have been event settings
+  all along — the grid greys the hours outside them and refuses drops there —
+  but nothing could change them, so every event was stuck on 09:00–18:00 in
+  30-minute slots. The settings endpoint now accepts all three, and the
+  toolbar edits them beside the other grid settings. The pair is validated
+  together server-side, so updating one bound can never invert the window.
+- **The management grid opens on the working-hours window, not the whole
+  day.** At the defaults, midnight-to-midnight is 48 rows of which only 18
+  accept drops, and every session began with a half-screen scroll past dead
+  rows. The grid now renders the working hours plus one slot either side,
+  widening on its own to keep anything scheduled outside them visible and
+  reachable — and a "Full day" toolbar toggle restores the whole day.
+- **A refused drop says why.** Dropping outside working hours or onto an
+  overlap used to bounce the block back to where it started, silently. The
+  cursor-following ghost now turns red the moment the position under it would
+  be refused, with the reason captioned under the time preview, and a
+  completed drop that is refused raises a banner naming the rule it hit —
+  which times out on its own, so a stale reason does not outlive the mistake
+  it explains.
+- **The unscheduled panel can be searched, and follows the track filter.**
+  Finding one talk in a 200-item scrolling column is the panel's whole job, so
+  it gets a text filter over titles and speakers, and the toolbar's track
+  filter now narrows it like it narrows the grid — dropping non-matching talks
+  outright rather than greying them, since a greyed-out list is still a long
+  list. (Room and group filters describe columns, and an unscheduled talk is
+  in no column yet, so they do not apply here.)
+- **Deleting a column, spanning block, session block or room group asks
+  first.** None of these can be undone, and the column "×" in particular sat
+  one stray click from a surface managers hit routinely to rename. The
+  confirmation names what a confirming click costs — for a column, how many
+  scheduled contributions move back to the unscheduled list — and
+  click-to-rename now lives on the column title alone rather than the whole
+  header.
+- **The day is part of the URL**, on both grids. A shared link meaning
+  "Wednesday's 9th floor" used to open on the default day with only the floor
+  restored. The server still decides the actual day — an unknown one falls
+  back to the default — so the URL follows what really loaded, and clearing
+  the filters keeps it: it says which view is shown, not what is filtered out
+  of it.
+- **The printed sheet names its day and its filter.** Under the event title:
+  the day (a stack of prints from a multi-day event was otherwise
+  indistinguishable) and the active filter spelled out as "Rooms: …" /
+  "Tracks: …" — which slice of the event a filtered sheet is, the sheet itself
+  never said.
 
 ## [0.1.3+indico3.3.12] — 2026-08-18
 

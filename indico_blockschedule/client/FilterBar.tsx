@@ -96,7 +96,9 @@ export function FilterBar({columns, groups, tracks, filters, onChange, visibleCo
             basic
             icon="undo"
             content={Translate.string('Clear')}
-            onClick={() => onChange(EMPTY_FILTERS)}
+            // The day survives the reset: it says which view is shown, not
+            // what is filtered out of it.
+            onClick={() => onChange({...EMPTY_FILTERS, day: filters.day})}
           />
         </>
       )}

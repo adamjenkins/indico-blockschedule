@@ -5,8 +5,28 @@
 # it and/or modify it under the terms of the MIT License;
 # see the LICENSE file for more details.
 
-from indico_blockschedule.controllers import _day_bounds, _grid_payload, _minutes_to_hhmm
+from datetime import UTC, date, datetime, timedelta
+
+import pytest
+from werkzeug.exceptions import BadRequest
+
+from indico_blockschedule.controllers import _combine_local, _day_bounds, _day_windows, _grid_payload, _minutes_to_hhmm
+from indico_blockschedule.models.columns import BlockScheduleColumn
+from indico_blockschedule.models.session_blocks import BlockScheduleSessionBlock
 from indico_blockschedule.plugin import BlockschedulePlugin
+
+
+@pytest.fixture
+def manage_client(db, dummy_event, dummy_user, test_client):
+    """A test client logged in as a manager of `dummy_event`, with the feature on."""
+    from indico.modules.events.features.util import set_feature_enabled
+
+    set_feature_enabled(dummy_event, 'blockschedule', True)
+    dummy_event.update_principal(dummy_user, full_access=True)
+    db.session.flush()
+    with test_client.session_transaction() as sess:
+        sess.set_session_user(dummy_user)
+    return test_client
 
 
 def test_minutes_to_hhmm():
@@ -122,3 +142,145 @@ def test_the_management_payload_still_shows_everything(db, dummy_event, dummy_co
     payload = _grid_payload(dummy_event, dummy_event.start_dt.date(), full_day=True)
     titles = [c['title'] for c in payload['unscheduled_contributions']]
     assert dummy_contribution.title in titles
+
+
+def test_the_display_payload_omits_rooms_and_unscheduled(dummy_event):
+    # Neither key is read by the display page or the phone app, and both are the
+    # payload's most sensitive parts: `rooms` is an instance-wide directory once Room
+    # Booking is on, and the unscheduled list is invisible on the display grid anyway.
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date(), manage=False)
+    assert 'rooms' not in payload
+    assert 'unscheduled_contributions' not in payload
+
+
+def test_the_management_payload_keeps_rooms_and_unscheduled(dummy_event):
+    payload = _grid_payload(dummy_event, dummy_event.start_dt.date(), full_day=True)
+    assert payload['rooms'] == []
+    assert payload['unscheduled_contributions'] == []
+
+
+def test_combine_local_rejects_out_of_range_minutes(dummy_event):
+    for minutes in (-30, 24 * 60 + 1, 99999):
+        with pytest.raises(BadRequest):
+            _combine_local(dummy_event, date(2026, 6, 18), minutes)
+    # 24:00 stays valid as an end-of-day bound and means the following midnight.
+    assert _combine_local(dummy_event, date(2026, 6, 18), 24 * 60) == datetime(2026, 6, 19, 0, 0, tzinfo=UTC)
+
+
+def test_day_windows_clips_each_day_to_working_hours(dummy_event):
+    first, last = date(2026, 6, 18), date(2026, 6, 19)
+    # The caller asks for 08:00 on day one to 12:00 on day two; working hours are
+    # 09:00-18:00 and clip the early start on the first day.
+    windows = _day_windows(dummy_event, first, 8 * 60, last, 12 * 60, 9 * 60, 18 * 60)
+    assert windows == [
+        (datetime(2026, 6, 18, 9, 0, tzinfo=UTC), datetime(2026, 6, 18, 18, 0, tzinfo=UTC)),
+        (datetime(2026, 6, 19, 9, 0, tzinfo=UTC), datetime(2026, 6, 19, 12, 0, tzinfo=UTC)),
+    ]
+
+
+def test_day_windows_drops_a_day_with_no_time_inside_working_hours(dummy_event):
+    first, last = date(2026, 6, 18), date(2026, 6, 19)
+    # A first day starting after working hours end contributes no window at all.
+    windows = _day_windows(dummy_event, first, 19 * 60, last, 18 * 60, 9 * 60, 18 * 60)
+    assert windows == [
+        (datetime(2026, 6, 19, 9, 0, tzinfo=UTC), datetime(2026, 6, 19, 18, 0, tzinfo=UTC)),
+    ]
+
+
+@pytest.mark.usefixtures('no_csrf_check')
+def test_out_of_range_start_minutes_is_a_400_not_a_500(manage_client, dummy_event, dummy_contribution, db):
+    column = BlockScheduleColumn(event=dummy_event, position=1, label='Room A')
+    db.session.add(column)
+    db.session.flush()
+    resp = manage_client.post(f'/event/{dummy_event.id}/manage/block-schedule/schedule',
+                              json={'contribution_id': dummy_contribution.id, 'column_id': column.id,
+                                    'day': dummy_event.start_dt_local.date().isoformat(),
+                                    'start_minutes': 99999})
+    assert resp.status_code == 400
+
+
+@pytest.mark.usefixtures('no_csrf_check')
+def test_settings_update_accepts_working_hours_and_slot_size(manage_client, dummy_event):
+    resp = manage_client.patch(f'/event/{dummy_event.id}/manage/block-schedule/settings',
+                               json={'day_start_time': '08:30', 'day_end_time': '19:30', 'slot_minutes': 15})
+    assert resp.status_code == 200
+    assert resp.json['day_start_time'] == '08:30'
+    assert resp.json['day_end_time'] == '19:30'
+    assert resp.json['slot_minutes'] == 15
+    settings = BlockschedulePlugin.event_settings.get_all(dummy_event)
+    assert (settings['day_start_time'], settings['day_end_time'], settings['slot_minutes']) == ('08:30', '19:30', 15)
+
+
+@pytest.mark.usefixtures('no_csrf_check')
+@pytest.mark.parametrize('payload', (
+    {'day_start_time': '19:00'},   # after the stored end (18:00)
+    {'day_end_time': '08:00'},     # before the stored start (09:00)
+    {'day_start_time': '18:00', 'day_end_time': '09:00'},
+    {'day_start_time': 'noonish'},
+    {'day_start_time': '09:75'},
+    {'day_end_time': '25:00'},
+    {'slot_minutes': 0},
+    {'slot_minutes': 300},
+))
+def test_settings_update_rejects_a_broken_working_hours_window(manage_client, dummy_event, payload):
+    resp = manage_client.patch(f'/event/{dummy_event.id}/manage/block-schedule/settings', json=payload)
+    assert resp.status_code == 400
+    settings = BlockschedulePlugin.event_settings.get_all(dummy_event)
+    assert (settings['day_start_time'], settings['day_end_time'], settings['slot_minutes']) == ('09:00', '18:00', 30)
+
+
+@pytest.mark.usefixtures('no_csrf_check')
+def test_column_patch_no_longer_accepts_position(manage_client, dummy_event, db):
+    # Reordering goes through the reorder endpoint's two-phase dance; a raw position
+    # write here would trip the `(event_id, position)` unique constraint.
+    column = BlockScheduleColumn(event=dummy_event, position=1, label='Room A')
+    db.session.add(column)
+    db.session.flush()
+    resp = manage_client.patch(f'/event/{dummy_event.id}/manage/block-schedule/columns/{column.id}',
+                               json={'position': 5})
+    assert resp.status_code == 422
+    assert column.position == 1
+
+
+@pytest.mark.usefixtures('no_csrf_check')
+def test_column_delete_prunes_session_block_column_ids(manage_client, dummy_event, db):
+    column_a = BlockScheduleColumn(event=dummy_event, position=1, label='Room A')
+    column_b = BlockScheduleColumn(event=dummy_event, position=2, label='Room B')
+    db.session.add_all([column_a, column_b])
+    db.session.flush()
+    start_dt = datetime(2026, 6, 18, 9, 0, tzinfo=UTC)
+    both = BlockScheduleSessionBlock(event=dummy_event, title='Both', start_dt=start_dt,
+                                     duration=timedelta(minutes=60), column_ids=[column_a.id, column_b.id])
+    only_a = BlockScheduleSessionBlock(event=dummy_event, title='Only A', start_dt=start_dt,
+                                       duration=timedelta(minutes=60), column_ids=[column_a.id])
+    everywhere = BlockScheduleSessionBlock(event=dummy_event, title='Everywhere', start_dt=start_dt,
+                                           duration=timedelta(minutes=60), column_ids=None)
+    db.session.add_all([both, only_a, everywhere])
+    db.session.flush()
+
+    resp = manage_client.delete(f'/event/{dummy_event.id}/manage/block-schedule/columns/{column_a.id}')
+
+    assert resp.status_code == 200
+    # The banner spanning both columns shrinks; the one spanning only the deleted
+    # column would render nowhere (and have no delete control), so it goes too; a
+    # NULL list means "every column" and is left alone.
+    assert both.column_ids == [column_b.id]
+    assert BlockScheduleSessionBlock.query.filter_by(id=only_a.id).first() is None
+    assert everywhere.column_ids is None
+
+
+def test_grid_data_serves_etags_and_a_304_on_matching_if_none_match(manage_client, dummy_event):
+    url = f'/event/{dummy_event.id}/manage/block-schedule/grid-data'
+    first = manage_client.get(url)
+    assert first.status_code == 200
+    etag = first.headers['ETag']
+    assert 'must-revalidate' in first.headers['Cache-Control']
+    again = manage_client.get(url, headers={'If-None-Match': etag})
+    assert again.status_code == 304
+    assert not again.data
+
+
+def test_display_grid_data_serves_etags_too(manage_client, dummy_event):
+    resp = manage_client.get(f'/event/{dummy_event.id}/block-schedule/grid-data')
+    assert resp.status_code == 200
+    assert resp.headers.get('ETag')

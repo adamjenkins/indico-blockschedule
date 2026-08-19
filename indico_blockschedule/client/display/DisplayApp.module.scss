@@ -58,9 +58,15 @@
   :global(.confBodyBox) {
     margin-left: 0 !important;
   }
+
+  // A block sliced in half across a page boundary is unreadable on both halves.
+  .scheduled-block,
+  .session-block {
+    break-inside: avoid;
+  }
 }
 
-// Plain DOM element (see `printGrid.ts`), not a React-rendered/CSS-modules-scoped one.
+// Plain DOM elements (see `printGrid.ts`), not React-rendered/CSS-modules-scoped ones.
 :global(#bs-print-header) {
   display: none;
 
@@ -69,6 +75,13 @@
     margin-bottom: 0.5em;
     font-size: 1.4em;
     font-weight: bold;
+  }
+
+  // The day and active-filter line under the event title.
+  :global(.bs-print-subtitle) {
+    font-size: 0.65em;
+    font-weight: normal;
+    color: #444;
   }
 }
 

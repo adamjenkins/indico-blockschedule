@@ -23,8 +23,15 @@ interface AutoscheduleResult {
 interface AutoscheduleFormProps {
   eventDays: string[];
   currentDay: string;
+  /** The event's working-hours settings (`HH:MM`), proposed as the default range so the
+   * form starts out matching the window the grid itself enforces on drops. */
+  workingHoursStart: string;
+  workingHoursEnd: string;
   sessions: BSSession[];
   tracks: BSTrack[];
+  /** Where the popup portals to -- inside the fullscreenable container, or it would open
+   * invisibly whenever the workspace is fullscreen (see `useFullscreenMountNode`). */
+  mountNode?: HTMLElement;
   onRun: (
     startDay: string,
     startMinutes: number,
@@ -36,12 +43,21 @@ interface AutoscheduleFormProps {
   ) => Promise<AutoscheduleResult | null>;
 }
 
-export function AutoscheduleForm({eventDays, currentDay, sessions, tracks, onRun}: AutoscheduleFormProps) {
+export function AutoscheduleForm({
+  eventDays,
+  currentDay,
+  workingHoursStart,
+  workingHoursEnd,
+  sessions,
+  tracks,
+  mountNode,
+  onRun,
+}: AutoscheduleFormProps) {
   const [open, setOpen] = useState(false);
   const [startDay, setStartDay] = useState(currentDay);
-  const [startTime, setStartTime] = useState('09:00');
+  const [startTime, setStartTime] = useState(workingHoursStart);
   const [endDay, setEndDay] = useState(eventDays[eventDays.length - 1] ?? currentDay);
-  const [endTime, setEndTime] = useState('18:00');
+  const [endTime, setEndTime] = useState(workingHoursEnd);
   const [clearSchedule, setClearSchedule] = useState(false);
   const [excludeSessionIds, setExcludeSessionIds] = useState<number[]>([]);
   const [excludeTrackIds, setExcludeTrackIds] = useState<number[]>([]);
@@ -71,6 +87,7 @@ export function AutoscheduleForm({eventDays, currentDay, sessions, tracks, onRun
       onOpen={() => setOpen(true)}
       onClose={() => setOpen(false)}
       position="bottom left"
+      mountNode={mountNode}
       trigger={
         <Button type="button">
           <Translate>Autoschedule…</Translate>

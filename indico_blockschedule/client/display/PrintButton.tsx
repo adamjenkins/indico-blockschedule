@@ -19,11 +19,16 @@ type Orientation = 'portrait' | 'landscape';
 interface PrintButtonProps {
   containerRef: React.RefObject<HTMLElement>;
   eventTitle: string;
+  /** The day being shown (`YYYY-MM-DD`). Printed under the title: the sheet itself shows
+   * rooms and times but not which day of a multi-day event it belongs to. */
+  day: string;
+  /** The active filter spelled out ("Rooms: …" / "Tracks: …"), or null when unfiltered. */
+  filterDescription: string | null;
 }
 
 /** Colour vs. black-and-white isn't chosen here -- it's the display page's own "Black and
  * white" toggle, and printing always reflects whatever the view is currently showing. */
-export function PrintButton({containerRef, eventTitle}: PrintButtonProps) {
+export function PrintButton({containerRef, eventTitle, day, filterDescription}: PrintButtonProps) {
   const [open, setOpen] = useState(false);
   const [paperSize, setPaperSize] = useState<PaperSize>('A4');
   const [orientation, setOrientation] = useState<Orientation>('landscape');
@@ -32,8 +37,9 @@ export function PrintButton({containerRef, eventTitle}: PrintButtonProps) {
     setOpen(false);
     const container = containerRef.current;
     if (container) {
+      const subtitle = [day, filterDescription].filter(Boolean).join(' — ');
       // Let the popup actually close before the print-only DOM surgery happens.
-      window.setTimeout(() => printSchedule(container, eventTitle, paperSize, orientation), 50);
+      window.setTimeout(() => printSchedule(container, eventTitle, subtitle, paperSize, orientation), 50);
     }
   };
 

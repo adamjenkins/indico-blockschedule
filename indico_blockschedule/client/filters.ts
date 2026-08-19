@@ -8,20 +8,26 @@
 import {BSColumn, BSContribution, BSGridData} from './types';
 
 /**
- * Which rooms and tracks a view is currently restricted to.
+ * Which rooms and tracks a view is currently restricted to, and which day it
+ * is showing.
  *
- * All three are "empty means everything", so the no-filter case needs no
+ * The id lists are "empty means everything", so the no-filter case needs no
  * special value and an absent URL parameter means the same as an empty one.
+ * `day` rides along even though it is a view coordinate rather than a
+ * restriction: it has to survive `syncFiltersToUrl` rebuilding the query
+ * string from scratch, or a shared URL would open on the default day with
+ * every other dimension of the view restored.
  */
 export interface BSFilters {
   groupIds: number[];
   roomIds: number[];
   trackIds: number[];
+  day: string | null;
 }
 
-export const EMPTY_FILTERS: BSFilters = {groupIds: [], roomIds: [], trackIds: []};
+export const EMPTY_FILTERS: BSFilters = {groupIds: [], roomIds: [], trackIds: [], day: null};
 
-const PARAMS: [keyof BSFilters, string][] = [
+const ID_PARAMS: [keyof Pick<BSFilters, 'groupIds' | 'roomIds' | 'trackIds'>, string][] = [
   ['groupIds', 'groups'],
   ['roomIds', 'rooms'],
   ['trackIds', 'tracks'],
@@ -34,20 +40,27 @@ function parseIds(raw: string | null): number[] {
   return [...new Set(raw.split(',').map(x => parseInt(x, 10)).filter(n => Number.isFinite(n)))];
 }
 
-/** Read filters out of a query string (`?rooms=1,2&tracks=7`). */
+/** Read filters out of a query string (`?day=2026-08-19&rooms=1,2&tracks=7`). */
 export function parseFilters(search: string): BSFilters {
   const params = new URLSearchParams(search);
+  const day = params.get('day');
   return {
     groupIds: parseIds(params.get('groups')),
     roomIds: parseIds(params.get('rooms')),
     trackIds: parseIds(params.get('tracks')),
+    // Only the shape is checked here; whether the date is one of the event's
+    // days is the server's call (an unknown day falls back to the default).
+    day: day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null,
   };
 }
 
 /** Render filters back into a query string, omitting whatever is unset. */
 export function serializeFilters(filters: BSFilters): string {
   const params = new URLSearchParams();
-  for (const [key, param] of PARAMS) {
+  if (filters.day) {
+    params.set('day', filters.day);
+  }
+  for (const [key, param] of ID_PARAMS) {
     if (filters[key].length) {
       params.set(param, filters[key].join(','));
     }
@@ -56,8 +69,10 @@ export function serializeFilters(filters: BSFilters): string {
   return qs ? `?${qs}` : '';
 }
 
+/** Whether anything is being filtered out. The day never counts: it picks
+ * which view is shown, it does not narrow it. */
 export function hasActiveFilters(filters: BSFilters): boolean {
-  return PARAMS.some(([key]) => filters[key].length > 0);
+  return ID_PARAMS.some(([key]) => filters[key].length > 0);
 }
 
 /**
@@ -69,6 +84,23 @@ export function hasActiveFilters(filters: BSFilters): boolean {
 export function syncFiltersToUrl(filters: BSFilters) {
   const url = `${window.location.pathname}${serializeFilters(filters)}${window.location.hash}`;
   window.history.replaceState(null, '', url);
+}
+
+/**
+ * Narrow the unscheduled list to the active track filter.
+ *
+ * Room and group filters describe columns, and an unscheduled talk is in no
+ * column yet, so only the track filter can apply here. Unlike the grid, which
+ * dims non-matching talks to keep the day's shape readable, the panel drops
+ * them outright: its job is finding the next talk to place, and a greyed-out
+ * list is still a long list.
+ */
+export function filterUnscheduled(contributions: BSContribution[], filters: BSFilters): BSContribution[] {
+  if (!filters.trackIds.length) {
+    return contributions;
+  }
+  const trackIds = new Set(filters.trackIds);
+  return contributions.filter(c => c.track_id !== null && trackIds.has(c.track_id));
 }
 
 export interface FilteredGrid {
