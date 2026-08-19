@@ -29,7 +29,7 @@ import {trackColorMap} from '../colors';
 import {FilterBar} from '../FilterBar';
 import {applyFilters, BSFilters, parseFilters, syncFiltersToUrl} from '../filters';
 import {FullscreenButton} from '../FullscreenButton';
-import {BSDescriptionDisplay, BSGridData} from '../types';
+import {BSContribution, BSDescriptionDisplay, BSGridData} from '../types';
 
 import {AutoscheduleForm} from './AutoscheduleForm';
 import {ExportButton} from './ExportButton';
@@ -69,26 +69,61 @@ export function ManageApp({eventId}: ManageAppProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Put one changed contribution back into the grid without refetching it.
+   *
+   * The schedule and unschedule endpoints both return the contribution they
+   * changed, so there is nothing to go back to the server for. Refetching cost
+   * a full grid build per drag -- the single slowest thing a manager waited for
+   * -- and this is a drag-and-drop interface, so it happened constantly.
+   *
+   * Safe here specifically because the management grid is always requested with
+   * `full_day`, so its start and end are fixed at midnight to midnight and
+   * cannot shift under a moved block. The display grid derives its bounds from
+   * its content and could not be patched this way.
+   */
+  const applyContribution = (contribution: BSContribution) => {
+    setGridData(current => {
+      if (!current) {
+        return current;
+      }
+      const scheduled = current.scheduled_contributions.filter(c => c.id !== contribution.id);
+      const unscheduled = current.unscheduled_contributions.filter(c => c.id !== contribution.id);
+      // `column_id` is what decides which of the two lists it belongs in --
+      // the same rule the server uses when it builds the payload.
+      if (contribution.column_id === null) {
+        unscheduled.push(contribution);
+      } else {
+        scheduled.push(contribution);
+      }
+      return {...current, scheduled_contributions: scheduled, unscheduled_contributions: unscheduled};
+    });
+  };
+
   const scheduleContribution = async (contributionId: number, columnId: number, startMinutes: number) => {
     try {
-      await indicoAxios.post(scheduleURL({event_id: eventId}), {
+      const {data} = await indicoAxios.post(scheduleURL({event_id: eventId}), {
         contribution_id: contributionId,
         column_id: columnId,
         day,
         start_minutes: startMinutes,
       });
-      await reload(day ?? undefined);
+      applyContribution(data);
     } catch (error) {
       handleAxiosError(error);
+      // The optimistic view and the server have diverged; get the truth back.
+      await reload(day ?? undefined);
     }
   };
 
   const unscheduleContribution = async (contributionId: number) => {
     try {
-      await indicoAxios.post(unscheduleURL({event_id: eventId}), {contribution_id: contributionId});
-      await reload(day ?? undefined);
+      const {data} = await indicoAxios.post(unscheduleURL({event_id: eventId}),
+                                            {contribution_id: contributionId});
+      applyContribution(data);
     } catch (error) {
       handleAxiosError(error);
+      await reload(day ?? undefined);
     }
   };
 
@@ -106,8 +141,14 @@ export function ManageApp({eventId}: ManageAppProps) {
     data: {label?: string; color?: string | null; min_width_px?: number}
   ) => {
     try {
-      await indicoAxios.patch(columnsUpdateURL({event_id: eventId, column_id: columnId}), data);
-      await reload(day ?? undefined);
+      const {data: column} = await indicoAxios.patch(
+        columnsUpdateURL({event_id: eventId, column_id: columnId}), data);
+      // Renames and colour changes are frequent and touch one column; the
+      // endpoint hands it back, so there is no reason to rebuild the grid.
+      setGridData(current => current && {
+        ...current,
+        columns: current.columns.map(c => (c.id === column.id ? column : c)),
+      });
     } catch (error) {
       handleAxiosError(error);
     }

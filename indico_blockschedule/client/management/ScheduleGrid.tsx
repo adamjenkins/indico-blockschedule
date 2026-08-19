@@ -6,7 +6,7 @@
 // see the LICENSE file for more details.
 
 import {Translate} from 'indico/react/i18n';
-import React, {useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {Button, Checkbox, Dropdown, Icon, Input} from 'semantic-ui-react';
 
 import {paleBackground, readableTextColor, trackColorMap} from '../colors';
@@ -92,6 +92,42 @@ interface ScheduleGridProps {
   onUpdateSessionBlock: (blockId: number, data: UpdateSessionBlockData) => void;
   onDeleteSessionBlock: (blockId: number) => void;
 }
+
+/**
+ * A column's empty background cells.
+ *
+ * Memoised, and pulled out into its own component so that it can be: on a
+ * 20-room grid at 15-minute slots this is around a thousand divs that depend on
+ * nothing a drag changes, and rebuilding them on every pointer move was most of
+ * the cost of dragging a block across the page.
+ */
+const ColumnCells = React.memo(({
+  slots,
+  rowHeightPx,
+  workingHoursStart,
+  workingHoursEnd,
+}: {
+  slots: number[];
+  rowHeightPx: number;
+  workingHoursStart: number;
+  workingHoursEnd: number;
+}) => (
+  <>
+    {slots.map(slotMinutes => (
+      <div
+        key={slotMinutes}
+        styleName={
+          slotMinutes < workingHoursStart || slotMinutes >= workingHoursEnd
+            ? 'cell cell-outside-hours'
+            : 'cell'
+        }
+        style={{height: rowHeightPx}}
+      />
+    ))}
+  </>
+));
+ColumnCells.displayName = 'ColumnCells';
+
 
 /** Candidate start minute closest to `rawStart`, snapping to a neighbor's edge (± the gap) if within one slot. */
 function snapStart(
@@ -552,13 +588,37 @@ export function ScheduleGrid({
   onUpdateSessionBlock,
   onDeleteSessionBlock,
 }: ScheduleGridProps) {
-  const slots = buildSlots(gridData.day_start_time, gridData.day_end_time, gridData.slot_minutes);
+  // Memoised so the derived objects keep their identity between renders. Without
+  // this every render rebuilt the slot list, a 200-entry Map and the colour map,
+  // and handed `ColumnCells` a fresh `slots` array so it could never bail out.
   const rowHeightPx = gridData.row_height_px;
-  const bodyHeight = slots.length * rowHeightPx;
-  const contributionsById = new Map(
-    [...gridData.scheduled_contributions, ...gridData.unscheduled_contributions].map(c => [c.id, c])
+  const slots = useMemo(
+    () => buildSlots(gridData.day_start_time, gridData.day_end_time, gridData.slot_minutes),
+    [gridData.day_start_time, gridData.day_end_time, gridData.slot_minutes]
   );
-  const trackColors = trackColorMap(gridData.tracks);
+  const bodyHeight = slots.length * rowHeightPx;
+  const contributionsById = useMemo(
+    () => new Map(
+      [...gridData.scheduled_contributions, ...gridData.unscheduled_contributions].map(c => [c.id, c])
+    ),
+    [gridData.scheduled_contributions, gridData.unscheduled_contributions]
+  );
+  const trackColors = useMemo(() => trackColorMap(gridData.tracks), [gridData.tracks]);
+  const contributionsByColumn = useMemo(() => {
+    const byColumn = new Map<number, BSContribution[]>();
+    for (const contribution of gridData.scheduled_contributions) {
+      if (contribution.column_id === null || contribution.start_minutes === null) {
+        continue;
+      }
+      const list = byColumn.get(contribution.column_id);
+      if (list) {
+        list.push(contribution);
+      } else {
+        byColumn.set(contribution.column_id, [contribution]);
+      }
+    }
+    return byColumn;
+  }, [gridData.scheduled_contributions]);
 
   // Which of the "add" forms is expanded, if any -- one at a time (see the panel below).
   const [openForm, setOpenForm] = useState<AddFormKey | null>(null);
@@ -576,9 +636,15 @@ export function ScheduleGrid({
   // can't be read during `dragover` (browsers only expose `.types` then, not the actual
   // payload), so which contribution is being dragged has to be tracked via React state instead.
   const [draggingContribution, setDraggingContribution] = useState<BSGridData['scheduled_contributions'][number] | null>(null);
+  // Only the snapped start minute lives in state. The pointer position used to
+  // live here too, which made every pixel of movement a state change on this
+  // component -- and with a 20-room grid that is ~2,000 React elements
+  // reconciled per mouse move, which is why the ghost trailed the cursor. The
+  // start minute changes at snap granularity, so most moves now change nothing.
   const [dragPreview, setDragPreview] = useState<
-    {contributionId: number; startMinutes: number; clientX: number; clientY: number} | null
+    {contributionId: number; startMinutes: number} | null
   >(null);
+
   // Where, within the dragged block, the cursor grabbed it, and the block's own size --
   // captured once at dragstart -- so the floating time tooltip can be anchored to the
   // *ghost's* bottom-right corner (cursor position - grab offset + block size) as it moves,
@@ -586,8 +652,42 @@ export function ScheduleGrid({
   const [dragGrabOffset, setDragGrabOffset] = useState<
     {offsetX: number; offsetY: number; width: number; height: number} | null
   >(null);
+  // Mirrored into a ref so the animation frame can read it without the callback
+  // having to be rebuilt (and the frame rescheduled) whenever it changes.
+  const dragGrabOffsetRef = useRef(dragGrabOffset);
+  dragGrabOffsetRef.current = dragGrabOffset;
+
+  // The ghost still has to follow the cursor every pixel, so it does that
+  // outside React: the pointer goes into a ref and one animation frame writes a
+  // transform straight onto the node.
+  const ghostRef = useRef<HTMLDivElement | null>(null);
+  const pointerRef = useRef<{x: number; y: number} | null>(null);
+  const ghostFrameRef = useRef<number | null>(null);
+
+  const positionGhost = useCallback(() => {
+    ghostFrameRef.current = null;
+    const node = ghostRef.current;
+    const pointer = pointerRef.current;
+    const offset = dragGrabOffsetRef.current;
+    if (!node || !pointer || !offset) {
+      return;
+    }
+    node.style.transform = `translate(${pointer.x - offset.offsetX}px, ${pointer.y - offset.offsetY}px)`;
+  }, []);
+
+  const trackPointer = useCallback((clientX: number, clientY: number) => {
+    pointerRef.current = {x: clientX, y: clientY};
+    if (ghostFrameRef.current === null) {
+      ghostFrameRef.current = window.requestAnimationFrame(positionGhost);
+    }
+  }, [positionGhost]);
 
   const clearDrag = () => {
+    if (ghostFrameRef.current !== null) {
+      window.cancelAnimationFrame(ghostFrameRef.current);
+      ghostFrameRef.current = null;
+    }
+    pointerRef.current = null;
     setDraggingContribution(null);
     setDragPreview(null);
     setDragGrabOffset(null);
@@ -614,11 +714,11 @@ export function ScheduleGrid({
     const startMinutes = snapStart(
       slotMinutes, draggingContribution.duration_minutes ?? 0, columnId, draggingContribution.id, gridData
     );
+    trackPointer(event.clientX, event.clientY);
     setDragPreview(prev =>
       prev && prev.contributionId === draggingContribution.id && prev.startMinutes === startMinutes
-       && prev.clientX === event.clientX && prev.clientY === event.clientY
         ? prev
-        : {contributionId: draggingContribution.id, startMinutes, clientX: event.clientX, clientY: event.clientY}
+        : {contributionId: draggingContribution.id, startMinutes}
     );
   };
 
@@ -767,19 +867,13 @@ export function ScheduleGrid({
               clearDrag();
             }}
           >
-            {slots.map(slotMinutes => (
-              <div
-                key={slotMinutes}
-                styleName={
-                  slotMinutes < workingHoursStart || slotMinutes >= workingHoursEnd
-                    ? 'cell cell-outside-hours'
-                    : 'cell'
-                }
-                style={{height: rowHeightPx}}
-              />
-            ))}
-            {gridData.scheduled_contributions
-              .filter(c => c.column_id === column.id && c.start_minutes !== null)
+            <ColumnCells
+              slots={slots}
+              rowHeightPx={rowHeightPx}
+              workingHoursStart={workingHoursStart}
+              workingHoursEnd={workingHoursEnd}
+            />
+            {(contributionsByColumn.get(column.id) ?? [])
               .map(contribution => (
                 <div
                   key={contribution.id}
@@ -862,10 +956,15 @@ export function ScheduleGrid({
         // would have had, with the live time tooltip anchored to its bottom-right corner --
         // both real DOM, so normal stacking rules (and our very high `z-index`) actually apply.
         <div
+          ref={node => {
+            ghostRef.current = node;
+            // Place it as soon as it exists, so the first frame is not at 0,0.
+            positionGhost();
+          }}
           styleName="drag-ghost-box"
           style={{
-            left: dragPreview.clientX - dragGrabOffset.offsetX,
-            top: dragPreview.clientY - dragGrabOffset.offsetY,
+            left: 0,
+            top: 0,
             width: dragGrabOffset.width,
             height: dragGrabOffset.height,
           }}

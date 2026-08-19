@@ -11,7 +11,11 @@ from datetime import timedelta
 from io import BytesIO
 from operator import itemgetter
 
+from flask import session
+from sqlalchemy.orm import joinedload, selectinload
+
 from indico.core.db import db
+from indico.modules.events.contributions.models.contributions import Contribution
 from indico.modules.events.timetable.operations import (delete_timetable_entry, schedule_contribution,
                                                         update_timetable_entry)
 from indico.modules.events.util import track_location_changes, track_time_changes
@@ -85,8 +89,45 @@ def serialize_contribution(contribution, description_display='hidden'):
     }
 
 
-def get_unscheduled_contributions(event):
-    return [c for c in event.contributions if not c.is_deleted and c.timetable_entry is None]
+def event_contributions(event, *, accessible_only=False):
+    """Every live contribution of `event`, with what the serializer touches preloaded.
+
+    Walking `event.contributions` and letting each row lazy-load its timetable
+    entry, assignment, track and people costs a query per contribution per
+    relationship: 630 of them for a 200-talk day, which is two thirds of a second
+    the manager waits after every drag and the phone app pays on every refresh.
+    Attaching the relationships to one query costs three.
+
+    `accessible_only` drops contributions the current user may not see. Core's
+    own timetable does this per entry (`timetable/util.py`); the display grid and
+    the spreadsheet exports have to do the same, or a contribution protected
+    inside a public event is readable by anyone who opens the schedule.
+    """
+    contributions = (Contribution.query
+                     .with_parent(event)
+                     .filter(~Contribution.is_deleted)
+                     .options(joinedload('timetable_entry'),
+                              joinedload('blockschedule_assignment'),
+                              joinedload('track'),
+                              # The ACL is only read when `accessible_only` is set, but
+                              # loading it is cheap and unconditional keeps one query plan.
+                              joinedload('acl_entries'),
+                              selectinload('person_links').joinedload('person'))
+                     .all())
+    if accessible_only:
+        contributions = [c for c in contributions if c.can_access(session.user)]
+    return contributions
+
+
+def get_unscheduled_contributions(event, contributions=None):
+    """Contributions with no timetable entry.
+
+    `contributions` lets a caller that has already loaded them pass them in,
+    rather than paying for the whole set a second time.
+    """
+    if contributions is None:
+        contributions = event_contributions(event)
+    return [c for c in contributions if c.timetable_entry is None]
 
 
 def serialize_spanning_block(entry):
@@ -356,10 +397,15 @@ def autoschedule(event, columns, start_dt, end_dt, gap_minutes, *, exclude_sessi
 _EXPORT_HEADERS = ('Column', 'Start', 'End', 'Duration (min)', 'Title', 'Speakers', 'Session', 'Track')
 
 
-def build_export_rows(event, day):
-    """Headers + row dicts (one per scheduled contribution on `day`) for spreadsheet export."""
-    scheduled = [c for c in event.contributions
-                if not c.is_deleted and c.timetable_entry is not None
+def build_export_rows(event, day, *, accessible_only=False):
+    """Headers + row dicts (one per scheduled contribution on `day`) for spreadsheet export.
+
+    `accessible_only` drops what the current user may not see -- a spreadsheet is
+    a copy that leaves the site, so the display export must not carry a
+    contribution the viewer could not read on the page.
+    """
+    scheduled = [c for c in event_contributions(event, accessible_only=accessible_only)
+                if c.timetable_entry is not None
                 and c.timetable_entry.start_dt.astimezone(event.tzinfo).date() == day]
 
     def sort_key(contribution):
@@ -396,7 +442,7 @@ def parse_hhmm(value):
     return int(hours) * 60 + int(minutes)
 
 
-def build_grid_export_sheet(event, day):
+def build_grid_export_sheet(event, day, *, accessible_only=False):
     """A second sheet mirroring the visual block schedule grid: one column per room, and one
     merged, multi-line cell per scheduled presentation -- spanning the rows its duration
     covers, the way it visually spans rows on screen -- carrying room, session, track, author
@@ -426,8 +472,8 @@ def build_grid_export_sheet(event, day):
               .all())
     column_index_by_id = {column.id: index for index, column in enumerate(columns)}
 
-    scheduled = [c for c in event.contributions
-                if not c.is_deleted and c.timetable_entry is not None
+    scheduled = [c for c in event_contributions(event, accessible_only=accessible_only)
+                if c.timetable_entry is not None
                 and c.timetable_entry.start_dt.astimezone(event.tzinfo).date() == day]
 
     items = []
@@ -495,14 +541,15 @@ def build_grid_export_sheet(event, day):
     return time_labels, [column.title for column in columns], resolved
 
 
-def build_export_sheets(event, day):
+def build_export_sheets(event, day, *, accessible_only=False):
     """All sheets for the spreadsheet export: the flat contribution list, plus a second sheet
     laid out like the visual grid (see `build_grid_export_sheet`). CSV has no concept of
     multiple sheets, so it only ever uses `build_export_rows` directly -- these multi-sheet
     helpers are for xlsx/ods only.
     """
-    list_headers, list_rows = build_export_rows(event, day)
-    time_labels, column_titles, placements = build_grid_export_sheet(event, day)
+    list_headers, list_rows = build_export_rows(event, day, accessible_only=accessible_only)
+    time_labels, column_titles, placements = build_grid_export_sheet(event, day,
+                                                                     accessible_only=accessible_only)
     return [
         {'type': 'flat', 'name': 'Contributions', 'headers': list_headers, 'rows': list_rows},
         {'type': 'grid', 'name': 'Schedule Grid', 'time_labels': time_labels,

@@ -8,6 +8,43 @@ All notable changes to the Block Schedule plugin are documented here.
 
 ## [Unreleased]
 
+### Fixed
+- **The display grid and the exports now apply Indico's per-contribution access
+  check.** They previously only asked whether the *event* was readable, so a
+  contribution protected inside a public event was served to anyone who opened
+  the schedule — and downloadable as a spreadsheet, and cached onto phones by
+  the app. Core's own timetable filters each entry this way; the plugin now does
+  too. Management endpoints are unchanged: a manager arranging the grid still
+  sees everything in it.
+
+### Changed
+- **The grid payload is built with one query instead of hundreds.** Walking the
+  event's contributions let every row lazy-load its timetable entry, assignment,
+  track and speakers: measured at **630 queries and 0.62 s** for a 200-talk day.
+  Loading them together makes it **12 queries and 0.04 s**, and the endpoint as a
+  whole went from 0.68 s to 0.06 s. It is fetched on every refresh by every
+  phone, and by the manager after every drag.
+- **Scheduling and unscheduling a talk no longer refetch the whole grid.** Both
+  endpoints already returned the contribution they changed, so the management
+  view applies it directly. Renaming or recolouring a column does the same. The
+  structural operations — autoschedule, clear, adding and deleting columns —
+  still reload, because they change more than they report. The cost is that a
+  second manager's concurrent edits no longer appear by themselves; they did
+  before only at the price of a full grid rebuild after every drag.
+- **Dragging a block no longer rebuilds the grid on every pointer move.** The
+  pointer position moved out of React state, so a move only re-renders when the
+  snapped start minute actually changes; the ghost follows the cursor from a ref
+  via `requestAnimationFrame`, and the column background cells are memoised.
+  Measured over sixty drag events on a 30-column, 200-block grid: **no DOM nodes
+  added or removed at all**, where before it was the whole grid each time.
+
+### Added
+- `scripts/verify.py` — browser checks for the three behaviours above, asserted
+  numerically. The drag is dispatched as real `DragEvent`s sharing one
+  `DataTransfer`: Playwright's own drag helpers send mouse events, which do not
+  produce an HTML5 drag, so the handlers never fire and everything passes for
+  the wrong reason.
+
 ## [0.1.3+indico3.3.12] — 2026-08-18
 
 ### Added

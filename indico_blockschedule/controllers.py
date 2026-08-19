@@ -9,6 +9,7 @@ import re
 from datetime import UTC, datetime, time, timedelta
 
 from flask import jsonify, request
+from sqlalchemy.orm import selectinload
 from webargs import fields
 from webargs.flaskparser import use_kwargs
 from werkzeug.exceptions import BadRequest
@@ -29,8 +30,8 @@ from indico_blockschedule.models.columns import BlockScheduleColumn
 from indico_blockschedule.models.groups import BlockScheduleGroup
 from indico_blockschedule.models.session_blocks import BlockScheduleSessionBlock
 from indico_blockschedule.util import (ScheduleOverlapError, assign_contribution_to_column, autoschedule,
-                                       build_export_rows, build_export_sheets, clear_schedule, get_session_blocks,
-                                       get_spanning_blocks, get_unscheduled_contributions, send_ods,
+                                       build_export_rows, build_export_sheets, clear_schedule, event_contributions,
+                                       get_session_blocks, get_spanning_blocks, get_unscheduled_contributions, send_ods,
                                        send_xlsx_multisheet, serialize_column, serialize_contribution, serialize_group,
                                        serialize_session_block, serialize_spanning_block)
 from indico_blockschedule.views import WPDisplayBlockSchedule, WPManageBlockSchedule, WPManageTrackColors
@@ -93,7 +94,7 @@ def _day_bounds(scheduled, spanning_blocks, slot_minutes, settings):
     return _minutes_to_hhmm(start), _minutes_to_hhmm(end)
 
 
-def _grid_payload(event, day, *, full_day=False):
+def _grid_payload(event, day, *, full_day=False, accessible_only=False):
     from indico_blockschedule.plugin import BlockschedulePlugin
     columns = (BlockScheduleColumn.query
               .with_parent(event)
@@ -101,12 +102,19 @@ def _grid_payload(event, day, *, full_day=False):
               .all())
     groups = (BlockScheduleGroup.query
              .filter_by(event_id=event.id)
+             # `serialize_group` reads each group's columns; without this that is
+             # one query per group on top of everything else.
+             .options(selectinload('columns'))
              .order_by(BlockScheduleGroup.position)
              .all())
-    scheduled = [c for c in event.contributions
-                if not c.is_deleted and c.timetable_entry is not None
+    # One preloaded query for the whole set, then split it in Python: the day
+    # filter needs each entry's start in the event's timezone, which is not a
+    # comparison the database can make without knowing the zone.
+    contributions = event_contributions(event, accessible_only=accessible_only)
+    scheduled = [c for c in contributions
+                if c.timetable_entry is not None
                 and c.timetable_entry.start_dt.astimezone(event.tzinfo).date() == day]
-    unscheduled = get_unscheduled_contributions(event)
+    unscheduled = get_unscheduled_contributions(event, contributions)
     settings = BlockschedulePlugin.event_settings.get_all(event)
     track_colors = settings['track_colors'] or {}
     spanning_blocks = get_spanning_blocks(event, day)
@@ -629,16 +637,16 @@ class RHSessionBlockDeleteUpdate(RHBlockScheduleManageBase):
 _EXPORT_FORMATS = ('csv', 'xlsx', 'ods')
 
 
-def _export_response(event, fmt):
+def _export_response(event, fmt, *, accessible_only=False):
     if fmt not in _EXPORT_FORMATS:
         raise BadRequest(f'format must be one of {_EXPORT_FORMATS}')
     day = _event_day(event, request.args.get('day'))
     if fmt == 'csv':
         # CSV has no concept of multiple sheets, so it only ever gets the flat contribution
         # list -- the second, grid-shaped sheet is xlsx/ods only.
-        headers, rows = build_export_rows(event, day)
+        headers, rows = build_export_rows(event, day, accessible_only=accessible_only)
         return send_csv('block-schedule.csv', headers, rows)
-    sheets = build_export_sheets(event, day)
+    sheets = build_export_sheets(event, day, accessible_only=accessible_only)
     if fmt == 'xlsx':
         return send_xlsx_multisheet('block-schedule.xlsx', sheets)
     return send_ods('block-schedule.ods', sheets)
@@ -652,12 +660,16 @@ class RHDisplayBlockSchedule(RHDisplayEventBase):
 class RHDisplayGridData(RHDisplayEventBase):
     def _process(self):
         day = _event_day(self.event, request.args.get('day'))
-        return jsonify(_grid_payload(self.event, day))
+        # `accessible_only`: the event being public does not make every
+        # contribution in it public, and this payload is cached to phones.
+        return jsonify(_grid_payload(self.event, day, accessible_only=True))
 
 
 class RHDisplayExport(RHDisplayEventBase):
     def _process(self):
-        return _export_response(self.event, request.view_args['fmt'])
+        # A spreadsheet is a copy that leaves the site entirely, so the same
+        # filter matters here more than anywhere.
+        return _export_response(self.event, request.view_args['fmt'], accessible_only=True)
 
 
 class RHManageExport(RHBlockScheduleManageBase):
