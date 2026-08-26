@@ -97,11 +97,44 @@ with sync_playwright() as pw:
     spot = page.evaluate('''async (eventId) => {
         const grid = await (await fetch(`/event/${eventId}/manage/block-schedule/grid-data`,
             {headers: {Accept: 'application/json'}})).json();
+        const toMinutes = t => {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        };
+        const slot = grid.slot_minutes;
+        const snap = grid.snap_minutes > 0 ? grid.snap_minutes : 1;
+        const titleOf = el => (el.querySelector('[class*="title"]') || el).textContent.trim();
+        const match = el => grid.scheduled_contributions.find(
+            c => titleOf(el).startsWith(c.title.slice(0, 18)));
+
         const firstInDom = document.querySelector('[class*="scheduled-block"] [class*="contribution-block"]');
-        const title = (firstInDom.querySelector('[class*="title"]') || firstInDom).textContent.trim();
-        const dragged = grid.scheduled_contributions.find(c => title.startsWith(c.title.slice(0, 18)))
-            || grid.scheduled_contributions[0];
+        const dragged = match(firstInDom) || grid.scheduled_contributions[0];
         const duration = dragged.duration_minutes || 30;
+
+        const tracks = [...document.querySelectorAll('[class*="column-track"]')];
+        // The grid does NOT render the payload's bounds. The management payload is always
+        // built with `full_day`, so it says midnight to midnight; ManageApp then narrows
+        // what it renders to the working hours plus a slot either side (widening to cover
+        // anything placed outside them). A pixel offset therefore has to be measured from
+        // *that* origin, not from `day_start_time` -- computing it from midnight puts the
+        // drop hours below the track, where the grid rightly refuses it, and the check
+        // then fails for a reason that has nothing to do with what it is testing.
+        // Derived from a block already on screen rather than by re-deriving the window
+        // rule here, so this keeps working if the rule changes again.
+        let originMinutes = null;
+        for (const track of tracks) {
+            const placed = track.querySelector('[class*="scheduled-block"]');
+            if (!placed) { continue; }
+            const known = match(placed.querySelector('[class*="contribution-block"]') || placed);
+            if (!known || known.start_minutes === null) { continue; }
+            const topPx = placed.getBoundingClientRect().top - track.getBoundingClientRect().top;
+            originMinutes = known.start_minutes - (topPx / grid.row_height_px) * slot;
+            break;
+        }
+        if (originMinutes === null) { return null; }
+
+        const workStart = toMinutes(grid.working_hours_start);
+        const workEnd = toMinutes(grid.working_hours_end);
         for (let index = 0; index < grid.columns.length; index++) {
             const column = grid.columns[index];
             if (column.id === dragged.column_id) { continue; }
@@ -109,25 +142,28 @@ with sync_playwright() as pw:
                 .filter(c => c.column_id === column.id && c.start_minutes !== null)
                 .map(c => [c.start_minutes, c.start_minutes + (c.duration_minutes || 0)])
                 .sort((a, b) => a[0] - b[0]);
-            const toMinutes = t => {
-                const [h, m] = t.split(':').map(Number);
-                return h * 60 + m;
-            };
-            const dayEnd = toMinutes(grid.working_hours_end);
-            let cursor = toMinutes(grid.working_hours_start);
-            for (const [start, end] of busy) {
-                if (start - cursor >= duration + 10) { break; }
+            // Walk the gaps between booked intervals and take the first that fits the
+            // block with a slot's clearance either side. The clearance is not slack: the
+            // drop rounds the pointer to `snap_minutes` and then snaps again to a
+            // neighbour's edge, so a target chosen flush against a booked interval can
+            // land inside it and be refused as an overlap.
+            let cursor = workStart;
+            for (const [start, end] of [...busy, [workEnd, workEnd]]) {
+                if (start - cursor >= duration + 2 * slot) {
+                    const startMinutes = Math.ceil((cursor + slot) / snap) * snap;
+                    if (startMinutes >= workStart && startMinutes + duration <= Math.min(start, workEnd)) {
+                        const offset = ((startMinutes - originMinutes) / slot) * grid.row_height_px;
+                        return {columnIndex: index, offsetY: offset, startMinutes, originMinutes};
+                    }
+                }
                 cursor = Math.max(cursor, end);
-            }
-            if (cursor + duration + 10 <= dayEnd) {
-                const offset = (cursor / grid.slot_minutes) * grid.row_height_px;
-                return {columnIndex: index, offsetY: offset, startMinutes: cursor};
             }
         }
         return null;
     }''', EVENT)
     assert spot, 'no free slot found to drop into'
-    print(f"   dropping into column {spot['columnIndex']} at {spot['startMinutes']} minutes")
+    print(f"   dropping into column {spot['columnIndex']} at {spot['startMinutes']} minutes"
+          f" (grid origin {spot['originMinutes']:.0f} min)")
     requests.clear()   # the probe above fetched grid-data itself
     result = page.evaluate(DRAG, [spot['columnIndex'], moves, spot['offsetY']])
     page.wait_for_timeout(2500)
