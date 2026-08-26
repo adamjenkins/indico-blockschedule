@@ -2,7 +2,24 @@
 
 All notable changes to the Block Schedule plugin are documented here.
 
-## [Unreleased]
+## [0.2.0] — 2026-08-26
+
+**Requires Indico 3.3.13 or later.** Contribution favouriting is built on
+`User.favorite_contributions`, which core added in 3.3.13; the dependency is
+pinned accordingly (`indico>=3.3.13`) rather than left at `indico>=3.3`, so
+installing this on an older Indico now fails at install time instead of
+returning a 500 from the grid-data endpoint. Sites still on 3.3.12 want the
+`release/indico-3.3.12` branch, which is this feature set minus favouriting.
+
+### Packaging
+- Tagged releases now build the frontend assets and publish a wheel containing
+  them to the GitHub Release, so installing needs neither Node nor an Indico
+  source checkout. The workflow pins the Indico version it builds against:
+  compiled bundles are only valid for the core release they were built from.
+- CI builds and tests against `v3.3.13` rather than `master`. Tracking an
+  unreleased core meant a run could fail for reasons that had nothing to do
+  with the plugin, and nothing verified the plugin against the release it
+  actually targets.
 
 ### Added
 - `scripts/verify.py` — browser checks for the three behaviours above, asserted
