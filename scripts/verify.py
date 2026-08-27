@@ -244,7 +244,7 @@ with sync_playwright() as pw:
             check('and so does the public spreadsheet export', not leaked, str(leaked[:2]))
     anonymous.close()
 
-    print('\n== The interface follows the user\'s Indico language ==')
+    print("\n== The interface follows the user's Indico language ==")
     # A plugin's strings are looked up by gettext domain, and a lookup that
     # misses falls back to the English source silently -- no error, nothing in
     # the console, and the catalog sitting loaded and unread in
@@ -263,7 +263,7 @@ with sync_playwright() as pw:
     loaded = ja_page.evaluate(
         '() => Object.keys((window.REACT_TRANSLATIONS || {}).blockschedule || {}).length'
     )
-    check('the plugin\'s catalogue reaches the browser', loaded > 1, f'{loaded} entries')
+    check("the plugin's catalogue reaches the browser", loaded > 1, f'{loaded} entries')
 
     body = ja_page.inner_text('body')
     japanese = [w for w in ('トラックの色', '開始時刻', '終日', '未配置の投稿') if w in body]

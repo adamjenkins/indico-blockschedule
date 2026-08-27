@@ -2,7 +2,15 @@
 
 All notable changes to the Block Schedule plugin are documented here.
 
-## [Unreleased]
+## [0.3.0] — 2026-08-27
+
+**Requires Indico 3.3.13 or later**, unchanged from 0.2.0.
+
+Installing from the wheel attached to this release needs nothing new. Building
+from source now needs the translation catalogues compiled before packaging —
+`indico i18n compile plugin --python <dir>` and `--react <dir>` — because
+`pyproject.toml` copies the compiled files off disk rather than producing them.
+The release workflow does this and refuses to publish a wheel without them.
 
 ### Added — English and Japanese
 - **The plugin's interface is translatable, and ships Japanese.** The language
