@@ -1,0 +1,41 @@
+# Translations template for indico-plugin-blockschedule.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the indico-plugin-blockschedule project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: indico-plugin-blockschedule 0.2.0\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-08-27 00:49+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: indico_blockschedule/plugin.py
+msgid "Enabled by default"
+msgstr ""
+
+#: indico_blockschedule/plugin.py
+msgid ""
+"Turn the Block Schedule feature on for new events without a manager having to enable it. Events where a feature has "
+"already been switched on or off keep whatever they were set to."
+msgstr ""
+
+#: indico_blockschedule/plugin.py indico_blockschedule/templates/display.html indico_blockschedule/templates/manage.html
+msgid "Block Schedule"
+msgstr ""
+
+#: indico_blockschedule/plugin.py
+msgid "Gives event managers a grid-based timetable: time down the rows, rooms across the columns."
+msgstr ""
+
+#: indico_blockschedule/templates/track_colors.html
+msgid "Track colours"
+msgstr ""
+

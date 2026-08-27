@@ -5,13 +5,13 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-import {Translate} from 'indico/react/i18n';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Button, Checkbox, Confirm, Dropdown, Icon, Input} from 'semantic-ui-react';
 
 import {paleBackground, readableTextColor, trackColorMap} from '../colors';
 import {ContributionBlock} from '../ContributionBlock';
 import {buildSlots, durationToPx, GUTTER_PX, minutesToLabel, minutesToOffsetPx, parseTimeToMinutes} from '../gridTime';
+import {Translate} from '../i18n';
 import {BSContribution, BSGridData} from '../types';
 
 import {ContributionDragState} from './contributionDrag';

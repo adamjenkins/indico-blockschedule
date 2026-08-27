@@ -7,9 +7,10 @@
 
 import exportURL from 'indico-url:plugin_blockschedule.manage_export';
 
-import {Translate} from 'indico/react/i18n';
 import React from 'react';
 import {Dropdown} from 'semantic-ui-react';
+
+import {Translate} from '../i18n';
 
 interface ExportButtonProps {
   eventId: number;

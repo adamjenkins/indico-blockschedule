@@ -5,9 +5,10 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-import {Translate} from 'indico/react/i18n';
 import React, {useState} from 'react';
 import {Button, Popup} from 'semantic-ui-react';
+
+import {Translate} from '../i18n';
 
 import {printSchedule} from './printGrid';
 

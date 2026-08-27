@@ -244,6 +244,38 @@ with sync_playwright() as pw:
             check('and so does the public spreadsheet export', not leaked, str(leaked[:2]))
     anonymous.close()
 
+    print('\n== The interface follows the user\'s Indico language ==')
+    # A plugin's strings are looked up by gettext domain, and a lookup that
+    # misses falls back to the English source silently -- no error, nothing in
+    # the console, and the catalog sitting loaded and unread in
+    # `window.REACT_TRANSLATIONS`. So this asserts the *translated* text, which
+    # is the only evidence that distinguishes "translated" from "not wired up".
+    ja = browser.new_context(
+        locale='ja-JP', extra_http_headers={'Accept-Language': 'ja-JP,ja;q=0.9'}
+    )
+    ja.add_cookies([{'name': args.cookie_name, 'value': SID, 'domain': DOMAIN, 'path': '/'}])
+    ja_page = ja.new_page()
+    ja_errors: list[str] = []
+    ja_page.on('pageerror', lambda e: ja_errors.append(str(e)))
+    ja_page.goto(f'{BASE}/event/{EVENT}/manage/block-schedule/', wait_until='networkidle')
+    ja_page.wait_for_timeout(2500)
+
+    loaded = ja_page.evaluate(
+        '() => Object.keys((window.REACT_TRANSLATIONS || {}).blockschedule || {}).length'
+    )
+    check('the plugin\'s catalogue reaches the browser', loaded > 1, f'{loaded} entries')
+
+    body = ja_page.inner_text('body')
+    japanese = [w for w in ('トラックの色', '開始時刻', '終日', '未配置の投稿') if w in body]
+    english = [w for w in ('Track colours', 'Day starts', 'Full day') if w in body]
+    check('and the grid is drawn in Japanese', len(japanese) == 4, f'found {japanese}')
+    # The binding is what this really tests: with `Translate` imported from core
+    # rather than from the plugin's own `client/i18n.ts`, every string above is
+    # still English while everything else here passes.
+    check('with no English left in the chrome', not english, f'still English: {english}')
+    check('and no JS errors in Japanese', not ja_errors, '; '.join(ja_errors[:2]))
+    ja.close()
+
     check('no JS errors', not errors, '; '.join(errors[:2]))
     browser.close()
 

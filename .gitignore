@@ -8,8 +8,11 @@ dist/
 .venv/
 venv/
 
-# Compiled translations
+# Compiled translations. The .po/.pot sources are committed; these are built
+# from them -- by `indico i18n compile plugin` locally, and by the release
+# workflow before it packages the wheel.
 *.mo
+messages-react.json
 
 # Node / frontend build output
 node_modules/

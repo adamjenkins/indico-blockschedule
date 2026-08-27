@@ -211,6 +211,51 @@ testing — `dev-env/README.md` covers that in detail, and
 plugin install, asset build, a systemd unit, and an optional nginx
 location) end to end.
 
+### Translations
+
+The plugin ships English and Japanese. The language is Indico's — whatever the
+user has set in their profile — so there is no switch here and should not be
+one.
+
+Strings are marked the ordinary way: `_()` in Python, imported from the package
+(`from indico_blockschedule import _`), and `<Translate>` / `Translate.string()`
+in the client. **The client must import `Translate` from `client/i18n.ts`**, not
+from `indico/react/i18n`. That module binds the components to this plugin's
+gettext domain, exactly as `__init__.py` binds `_` on the Python side. Importing
+from core gives you components bound to core's `indico` domain, and every lookup
+then misses and falls back silently to English — with the catalog loaded and
+visible in `window.REACT_TRANSLATIONS.blockschedule`, and no error anywhere.
+
+```bash
+# from an Indico checkout, with the plugin installed
+indico i18n extract plugin --python  /path/to/indico-blockschedule
+indico i18n extract plugin --react   /path/to/indico-blockschedule
+indico i18n update  plugin --python  --locale ja_JP /path/to/indico-blockschedule
+indico i18n compile plugin --python  /path/to/indico-blockschedule
+indico i18n compile plugin --react   /path/to/indico-blockschedule
+```
+
+`babel.cfg` and `babel-js.cfg` live in this repo rather than being inherited:
+Indico's extractor falls back to `../babel.cfg`, which is the layout of the
+indico-plugins monorepo, and this plugin stands on its own.
+
+`.po` and `.pot` files are committed; `.mo` and `messages-react.json` are built
+from them and gitignored. **They are build inputs, not build outputs** —
+`pyproject.toml` lists them under `artifacts`, so `uv build --wheel` copies them
+off disk and compiles nothing. The release workflow compiles before packaging
+and then refuses to publish a wheel that has no catalogs, for the same reason it
+refuses one with no `static/dist`.
+
+Japanese terminology follows Indico's own `ja_JP` catalog wherever the two
+overlap — 部屋 for a room, トラック, セッション, お気に入り, 投稿 — so a user
+crossing between the plugin and the rest of Indico meets one vocabulary. The
+terms this plugin has and Indico does not (spanning block, session block,
+autoschedule, column) are listed in the design note under
+`dev-docs/indico-blockschedule/specs/`.
+
+Adding a language is a catalog, not a code change: `indico i18n init plugin
+--locale <code>` for each of `--python` and `--react`, translate, compile.
+
 ### Running the test suite
 
 ```bash

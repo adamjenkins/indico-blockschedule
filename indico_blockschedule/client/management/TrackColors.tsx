@@ -8,13 +8,13 @@
 import manageURL from 'indico-url:plugin_blockschedule.manage';
 import trackColorsUpdateURL from 'indico-url:plugin_blockschedule.track_colors_update';
 
-import {Translate} from 'indico/react/i18n';
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 import React, {useState} from 'react';
 import ReactDOM from 'react-dom';
 import {Button, Message} from 'semantic-ui-react';
 
 import {contrastRatio, readableTextColor} from '../colors';
+import {Translate} from '../i18n';
 import {BSTrack} from '../types';
 
 import './TrackColors.module.scss';

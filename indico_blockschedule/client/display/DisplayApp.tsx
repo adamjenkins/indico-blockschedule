@@ -7,7 +7,6 @@
 
 import gridDataURL from 'indico-url:plugin_blockschedule.display_grid_data';
 
-import {Translate} from 'indico/react/i18n';
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 import React, {useEffect, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
@@ -19,6 +18,7 @@ import {FilterBar} from '../FilterBar';
 import {applyFilters, BSFilters, parseFilters, syncFiltersToUrl} from '../filters';
 import {FullscreenButton} from '../FullscreenButton';
 import {buildSlots, durationToPx, GUTTER_PX, minutesToLabel, minutesToOffsetPx} from '../gridTime';
+import {Translate} from '../i18n';
 import {BSGridData} from '../types';
 
 import {ExportButton} from './ExportButton';

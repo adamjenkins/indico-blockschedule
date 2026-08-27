@@ -5,12 +5,12 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-import {Translate} from 'indico/react/i18n';
 import React, {useMemo, useState} from 'react';
 import {Input} from 'semantic-ui-react';
 
 import {ContributionBlock} from '../ContributionBlock';
 import {BSFilters, filterUnscheduled} from '../filters';
+import {Translate} from '../i18n';
 import {BSContribution} from '../types';
 
 import './UnscheduledPanel.module.scss';

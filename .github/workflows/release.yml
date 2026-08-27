@@ -93,6 +93,17 @@ jobs:
         run: python bin/maintenance/build-assets.py plugin "$GITHUB_WORKSPACE"
         working-directory: indico-src
 
+      # `pyproject.toml` lists the compiled catalogs as build artifacts, which
+      # means it picks them up *from disk* -- nothing in the wheel build compiles
+      # them. Without this step the wheel ships .po sources and no .mo, and the
+      # plugin is silently English for everyone. Run from the Indico checkout
+      # because the React half shells out to its `react-jsx-i18n`.
+      - name: Compile translations
+        run: |
+          indico i18n compile plugin --python "$GITHUB_WORKSPACE"
+          indico i18n compile plugin --react "$GITHUB_WORKSPACE"
+        working-directory: indico-src
+
       - name: Build the wheel
         run: uv build --wheel
 
@@ -105,6 +116,19 @@ jobs:
           echo "$wheel contains $count asset files"
           if [ "$count" -eq 0 ]; then
             echo "::error::wheel contains no static/dist files - the asset build did not take effect"
+            exit 1
+          fi
+
+      # Same class of trap as the assets above: absent, silent, and only ever
+      # noticed by a user who reads the language that went missing.
+      - name: Verify the wheel carries the compiled translations
+        run: |
+          wheel=$(ls dist/*.whl)
+          mo=$(python -m zipfile -l "$wheel" | grep -c 'translations/.*\.mo' || true)
+          json=$(python -m zipfile -l "$wheel" | grep -c 'messages-react\.json' || true)
+          echo "$wheel contains $mo .mo files and $json react catalogues"
+          if [ "$mo" -eq 0 ] || [ "$json" -eq 0 ]; then
+            echo "::error::wheel has no compiled translations - the compile step did not take effect"
             exit 1
           fi
 

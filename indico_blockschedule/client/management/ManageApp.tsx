@@ -19,7 +19,6 @@ import spanningBlocksCreateURL from 'indico-url:plugin_blockschedule.spanning_bl
 import spanningBlocksUpdateURL from 'indico-url:plugin_blockschedule.spanning_blocks_delete_update';
 import unscheduleURL from 'indico-url:plugin_blockschedule.unschedule';
 
-import {Translate} from 'indico/react/i18n';
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import ReactDOM from 'react-dom';
@@ -30,6 +29,7 @@ import {FilterBar} from '../FilterBar';
 import {applyFilters, BSFilters, parseFilters, syncFiltersToUrl} from '../filters';
 import {FullscreenButton} from '../FullscreenButton';
 import {minutesToLabel, parseTimeToMinutes} from '../gridTime';
+import {Translate} from '../i18n';
 import {BSContribution, BSDescriptionDisplay, BSGridData} from '../types';
 import {useFullscreenMountNode} from '../useFullscreenMountNode';
 

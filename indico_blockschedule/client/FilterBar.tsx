@@ -5,11 +5,11 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-import {Translate} from 'indico/react/i18n';
 import React from 'react';
 import {Button, Dropdown} from 'semantic-ui-react';
 
 import {BSFilters, EMPTY_FILTERS, hasActiveFilters} from './filters';
+import {Translate} from './i18n';
 import {BSColumn, BSGroup, BSTrack} from './types';
 
 import './FilterBar.module.scss';

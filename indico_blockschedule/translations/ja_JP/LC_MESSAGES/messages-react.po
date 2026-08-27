@@ -1,0 +1,406 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-08-26 00:49+0000\n"
+"PO-Revision-Date: 2026-08-27 00:50+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja_JP\n"
+"Language-Team: ja_JP <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: indico_blockschedule/client/FavoriteStar.tsx
+msgid "Remove from my timetable"
+msgstr "お気に入りから外す"
+
+#: indico_blockschedule/client/FavoriteStar.tsx
+msgid "Add to my timetable"
+msgstr "お気に入りに追加"
+
+#: indico_blockschedule/client/FilterBar.tsx
+#, python-brace-format
+msgid "{count} rooms"
+msgstr "{count}部屋"
+
+#: indico_blockschedule/client/FilterBar.tsx
+msgid "All rooms"
+msgstr "すべての部屋"
+
+#: indico_blockschedule/client/FilterBar.tsx
+msgid "All tracks"
+msgstr "すべてのトラック"
+
+#: indico_blockschedule/client/FilterBar.tsx
+#, python-brace-format
+msgid "Showing {visible} of {total} rooms"
+msgstr "{total}部屋中{visible}部屋を表示"
+
+#: indico_blockschedule/client/FilterBar.tsx
+msgid "Clear"
+msgstr "クリア"
+
+#: indico_blockschedule/client/FullscreenButton.tsx
+msgid "Exit fullscreen"
+msgstr "全画面表示を終了"
+
+#: indico_blockschedule/client/FullscreenButton.tsx
+msgid "View fullscreen"
+msgstr "全画面表示"
+
+#: indico_blockschedule/client/display/DisplayApp.tsx
+#, python-brace-format
+msgid "Rooms: {names}"
+msgstr "部屋：{names}"
+
+#: indico_blockschedule/client/display/DisplayApp.tsx
+#, python-brace-format
+msgid "Tracks: {names}"
+msgstr "トラック：{names}"
+
+#: indico_blockschedule/client/display/DisplayApp.tsx
+msgid "Highlight my timetable"
+msgstr "お気に入りを強調表示"
+
+#: indico_blockschedule/client/display/DisplayApp.tsx
+msgid "Black and white"
+msgstr "白黒"
+
+#: indico_blockschedule/client/display/ExportButton.tsx
+#: indico_blockschedule/client/management/ExportButton.tsx
+msgid "Export…"
+msgstr "エクスポート…"
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Print…"
+msgstr "印刷…"
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Paper size"
+msgstr "用紙サイズ"
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Orientation"
+msgstr "用紙の向き"
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Landscape"
+msgstr "横向き"
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Portrait"
+msgstr "縦向き"
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Print"
+msgstr "印刷"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Autoschedule…"
+msgstr "自動配置…"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "From"
+msgstr "開始"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "To"
+msgstr "終了"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Exclude"
+msgstr "除外"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Sessions…"
+msgstr "セッション…"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Tracks…"
+msgstr "トラック…"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Clear schedule (does not reschedule)"
+msgstr "配置を解除する（再配置は行いません）"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Clear schedule"
+msgstr "配置を解除"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Run autoschedule"
+msgstr "自動配置を実行"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Schedule cleared for the given timespan."
+msgstr "指定した時間帯の配置を解除しました。"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Everything was scheduled."
+msgstr "すべて配置しました。"
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+#, python-brace-format
+msgid "Could not fit {count} contribution(s) in the given timespan: {titles}"
+msgstr "指定した時間帯に収まらなかった投稿が{count}件あります：{titles}"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "Room groups"
+msgstr "部屋グループ"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid ""
+"Group rooms so a wide schedule can be viewed and printed a slice at a "
+"time — by floor, by building, or any other set that is useful. A room can"
+" belong to several groups. Tracks are offered as groups automatically and"
+" are not listed here."
+msgstr "部屋をグループにまとめると、横に広いスケジュールを一部分ずつ表示・印刷できます。フロア別、建物別など、使いやすい単位でかまいません。1つの部屋を複数のグループに入れることもできます。トラックは自動的にグループとして扱われるため、ここには表示されません。"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "No groups yet."
+msgstr "グループはまだありません。"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "No rooms"
+msgstr "部屋なし"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "Delete this group"
+msgstr "このグループを削除"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "New group name"
+msgstr "新しいグループ名"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "Add group"
+msgstr "グループを追加"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+#, python-brace-format
+msgid "Delete the group \"{title}\"? Its {count} room(s) are not affected."
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Delete"
+msgstr "削除"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Day starts"
+msgstr "開始時刻"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Day ends"
+msgstr "終了時刻"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Slot (min)"
+msgstr "スロット（分）"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Gap after contributions (min)"
+msgstr "投稿後の間隔（分）"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Snap to (min, 0 = off)"
+msgstr "スナップ幅（分、0で無効）"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Row height (px)"
+msgstr "行の高さ（px）"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Title lines (0 = no limit)"
+msgstr "タイトルの行数（0で無制限）"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid ""
+"Truncate contribution titles after this many lines, here and on the "
+"display page"
+msgstr "この行数で投稿のタイトルを省略します。この画面と表示ページの両方に適用されます"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Full day"
+msgstr "終日"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid ""
+"Show the whole day instead of the working-hours window, e.g. to reach "
+"entries scheduled outside it"
+msgstr "表示時間帯ではなく1日全体を表示します。時間帯の外に配置された項目を操作したい場合などに使います"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Show session/track"
+msgstr "セッション・トラックを表示"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Description"
+msgstr "説明"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Hidden"
+msgstr "非表示"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Truncated"
+msgstr "省略"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Full"
+msgstr "全文"
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Track colours"
+msgstr "トラックの色"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Column"
+msgstr "列"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Spanning block"
+msgstr "全体ブロック"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Session block"
+msgstr "セッションブロック"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Minimum column width (px), 0 for no minimum"
+msgstr "列の最小幅（px、0で指定なし）"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Pick a room (optional)…"
+msgstr "部屋を選択（任意）…"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Column name"
+msgstr "列名"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Add column"
+msgstr "列を追加"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Spanning block title (e.g. Lunch break)"
+msgstr "全体ブロックのタイトル（例：昼休み）"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "min"
+msgstr "分"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Add spanning block"
+msgstr "全体ブロックを追加"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Pick a session (optional)…"
+msgstr "セッションを選択（任意）…"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Session block title"
+msgstr "セッションブロックのタイトル"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Add session block"
+msgstr "セッションブロックを追加"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+#, python-brace-format
+msgid ""
+"Delete \"{name}\"? {count} scheduled contribution(s) will be moved back "
+"to the unscheduled list."
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+#, python-brace-format
+msgid "Delete the empty column \"{name}\"?"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+#, python-brace-format
+msgid "Delete the spanning block \"{title}\"?"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+#, python-brace-format
+msgid "Delete the session block \"{title}\"?"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Delete this session block?"
+msgstr "このセッションブロックを削除しますか？"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+#, python-brace-format
+msgid "Outside working hours ({start}–{end})"
+msgstr "表示時間帯（{start}–{end}）の外です"
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Overlaps another contribution"
+msgstr "ほかの投稿と重複しています"
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid ""
+"This event has no tracks yet. Add tracks under Programme, then come back "
+"here to give them colours."
+msgstr "このイベントにはまだトラックがありません。プログラムからトラックを追加してから、この画面で色を設定してください。"
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid ""
+"The colour a track is given here is used for its badge on every "
+"contribution in the block schedule, on the management grid and on the "
+"display page alike. Tracks left without a colour keep the default."
+msgstr "ここで設定した色は、ブロックスケジュール内のすべての投稿に表示されるトラックのバッジに使われます。管理画面と表示ページの両方に適用されます。色を設定しなかったトラックはデフォルトの色のままです。"
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Save colours"
+msgstr "色を保存"
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Back to the schedule"
+msgstr "スケジュールに戻る"
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Saved."
+msgstr "保存しました。"
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+#, python-brace-format
+msgid "Colour for {track}"
+msgstr "{track}の色"
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Default"
+msgstr "デフォルト"
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "WCAG contrast ratio of the badge text against its background"
+msgstr "バッジの文字と背景の WCAG コントラスト比"
+
+#: indico_blockschedule/client/management/UnscheduledPanel.tsx
+msgid "Unscheduled contributions"
+msgstr "未配置の投稿"
+
+#: indico_blockschedule/client/management/UnscheduledPanel.tsx
+msgid "All contributions are scheduled."
+msgstr "すべての投稿が配置されています。"
+
+#: indico_blockschedule/client/management/UnscheduledPanel.tsx
+msgid "Filter by title or speaker…"
+msgstr "タイトルまたは発表者で絞り込み…"
+
+#: indico_blockschedule/client/management/UnscheduledPanel.tsx
+msgid "No unscheduled contributions match the current filters."
+msgstr "現在の絞り込み条件に一致する未配置の投稿はありません。"
+

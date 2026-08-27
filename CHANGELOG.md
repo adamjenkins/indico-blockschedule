@@ -2,6 +2,31 @@
 
 All notable changes to the Block Schedule plugin are documented here.
 
+## [Unreleased]
+
+### Added — English and Japanese
+- **The plugin's interface is translatable, and ships Japanese.** The language
+  is Indico's own — whatever the user set in their profile — so there is no
+  switch here: a plugin competing with the site's language setting would be
+  wrong.
+- All 90 strings were already marked for translation; what was missing was the
+  catalogs, the extraction config and the binding. `babel.cfg` and
+  `babel-js.cfg` now live in this repo, since Indico's extractor otherwise falls
+  back to `../babel.cfg` — the indico-plugins monorepo layout, which this plugin
+  is not in.
+- **The client now imports `Translate` from `client/i18n.ts`**, which binds the
+  components to this plugin's gettext domain. Importing from
+  `indico/react/i18n` binds to core's domain instead, and every plugin string
+  then misses and falls back to English — silently, with the catalog loaded and
+  no error anywhere. This is the React counterpart of the `make_bound_gettext`
+  binding the Python side already had.
+- **The release workflow compiles catalogs before packaging, and checks they
+  arrived.** `pyproject.toml` lists the compiled files as build artifacts, which
+  copies them off disk rather than producing them, so a wheel built without the
+  new step installs cleanly and is silently English for everyone.
+- Japanese terminology follows Indico's own `ja_JP` catalog wherever the two
+  overlap, so the plugin and the rest of Indico read as one product.
+
 ## [0.2.0] — 2026-08-26
 
 **Requires Indico 3.3.13 or later.** Contribution favouriting is built on

@@ -1,0 +1,385 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-08-26 00:49+0000\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"MIME-Version: 1.0\n"
+"Generated-By: react-jsx-i18n-extract\n"
+
+#: indico_blockschedule/client/FavoriteStar.tsx
+msgid "Remove from my timetable"
+msgstr ""
+
+#: indico_blockschedule/client/FavoriteStar.tsx
+msgid "Add to my timetable"
+msgstr ""
+
+#: indico_blockschedule/client/FilterBar.tsx
+msgid "{count} rooms"
+msgstr ""
+
+#: indico_blockschedule/client/FilterBar.tsx
+msgid "All rooms"
+msgstr ""
+
+#: indico_blockschedule/client/FilterBar.tsx
+msgid "All tracks"
+msgstr ""
+
+#: indico_blockschedule/client/FilterBar.tsx
+msgid "Showing {visible} of {total} rooms"
+msgstr ""
+
+#: indico_blockschedule/client/FilterBar.tsx
+msgid "Clear"
+msgstr ""
+
+#: indico_blockschedule/client/FullscreenButton.tsx
+msgid "Exit fullscreen"
+msgstr ""
+
+#: indico_blockschedule/client/FullscreenButton.tsx
+msgid "View fullscreen"
+msgstr ""
+
+#: indico_blockschedule/client/display/DisplayApp.tsx
+msgid "Rooms: {names}"
+msgstr ""
+
+#: indico_blockschedule/client/display/DisplayApp.tsx
+msgid "Tracks: {names}"
+msgstr ""
+
+#: indico_blockschedule/client/display/DisplayApp.tsx
+msgid "Highlight my timetable"
+msgstr ""
+
+#: indico_blockschedule/client/display/DisplayApp.tsx
+msgid "Black and white"
+msgstr ""
+
+#: indico_blockschedule/client/display/ExportButton.tsx
+#: indico_blockschedule/client/management/ExportButton.tsx
+msgid "Export…"
+msgstr ""
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Print…"
+msgstr ""
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Paper size"
+msgstr ""
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Orientation"
+msgstr ""
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Landscape"
+msgstr ""
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Portrait"
+msgstr ""
+
+#: indico_blockschedule/client/display/PrintButton.tsx
+msgid "Print"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Autoschedule…"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "From"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "To"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Exclude"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Sessions…"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Tracks…"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Clear schedule (does not reschedule)"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Clear schedule"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Run autoschedule"
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Schedule cleared for the given timespan."
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Everything was scheduled."
+msgstr ""
+
+#: indico_blockschedule/client/management/AutoscheduleForm.tsx
+msgid "Could not fit {count} contribution(s) in the given timespan: {titles}"
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "Room groups"
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid ""
+"Group rooms so a wide schedule can be viewed and printed a slice at a time "
+"— by floor, by building, or any other set that is useful. A room can belong "
+"to several groups. Tracks are offered as groups automatically and are not "
+"listed here."
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "No groups yet."
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "No rooms"
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "Delete this group"
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "New group name"
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "Add group"
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+msgid "Delete the group \"{title}\"? Its {count} room(s) are not affected."
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Cancel"
+msgstr ""
+
+#: indico_blockschedule/client/management/GroupManager.tsx
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Delete"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Day starts"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Day ends"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Slot (min)"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Gap after contributions (min)"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Snap to (min, 0 = off)"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Row height (px)"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Title lines (0 = no limit)"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid ""
+"Truncate contribution titles after this many lines, here and on the display "
+"page"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Full day"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid ""
+"Show the whole day instead of the working-hours window, e.g. to reach "
+"entries scheduled outside it"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Show session/track"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Description"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Hidden"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Truncated"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Full"
+msgstr ""
+
+#: indico_blockschedule/client/management/ManageApp.tsx
+msgid "Track colours"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Column"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Spanning block"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Session block"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Minimum column width (px), 0 for no minimum"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Pick a room (optional)…"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Column name"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Add column"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Spanning block title (e.g. Lunch break)"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "min"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Add spanning block"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Pick a session (optional)…"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Session block title"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Add session block"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid ""
+"Delete \"{name}\"? {count} scheduled contribution(s) will be moved back to "
+"the unscheduled list."
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Delete the empty column \"{name}\"?"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Delete the spanning block \"{title}\"?"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Delete the session block \"{title}\"?"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Delete this session block?"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Outside working hours ({start}–{end})"
+msgstr ""
+
+#: indico_blockschedule/client/management/ScheduleGrid.tsx
+msgid "Overlaps another contribution"
+msgstr ""
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid ""
+"This event has no tracks yet. Add tracks under Programme, then come back "
+"here to give them colours."
+msgstr ""
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid ""
+"The colour a track is given here is used for its badge on every "
+"contribution in the block schedule, on the management grid and on the "
+"display page alike. Tracks left without a colour keep the default."
+msgstr ""
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Save colours"
+msgstr ""
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Back to the schedule"
+msgstr ""
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Saved."
+msgstr ""
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Colour for {track}"
+msgstr ""
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "Default"
+msgstr ""
+
+#: indico_blockschedule/client/management/TrackColors.tsx
+msgid "WCAG contrast ratio of the badge text against its background"
+msgstr ""
+
+#: indico_blockschedule/client/management/UnscheduledPanel.tsx
+msgid "Unscheduled contributions"
+msgstr ""
+
+#: indico_blockschedule/client/management/UnscheduledPanel.tsx
+msgid "All contributions are scheduled."
+msgstr ""
+
+#: indico_blockschedule/client/management/UnscheduledPanel.tsx
+msgid "Filter by title or speaker…"
+msgstr ""
+
+#: indico_blockschedule/client/management/UnscheduledPanel.tsx
+msgid "No unscheduled contributions match the current filters."
+msgstr ""

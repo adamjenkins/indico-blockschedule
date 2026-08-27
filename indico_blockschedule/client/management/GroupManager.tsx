@@ -8,11 +8,11 @@
 import groupsCreateURL from 'indico-url:plugin_blockschedule.groups_create';
 import groupsUpdateURL from 'indico-url:plugin_blockschedule.groups_delete_update';
 
-import {Translate} from 'indico/react/i18n';
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 import React, {useState} from 'react';
 import {Button, Confirm, Dropdown, Icon, Input, Modal} from 'semantic-ui-react';
 
+import {Translate} from '../i18n';
 import {BSColumn, BSGroup} from '../types';
 
 import './GroupManager.module.scss';
