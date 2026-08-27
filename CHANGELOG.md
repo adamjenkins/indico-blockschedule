@@ -2,6 +2,21 @@
 
 All notable changes to the Block Schedule plugin are documented here.
 
+## [0.3.1] — 2026-08-27
+
+Identical to 0.3.0 for anyone installing the published wheel — 0.3.0's release
+build failed its own translations check and never published one.
+
+### Fixed
+- **The release workflow now actually compiles the React catalogue.** It went
+  through `indico i18n compile plugin --react`, which chdirs to a directory
+  derived from the *installed* `indico` package — site-packages in CI, where
+  there is no `node_modules` — so `npx react-jsx-i18n` failed, the command
+  swallowed the error and exited 0, and the wheel carried no React catalogue.
+  It now runs the compile directly from the Indico checkout, which is where the
+  node dependencies are. Caught by the guard added alongside it rather than by
+  a user finding a half-translated page.
+
 ## [0.3.0] — 2026-08-27
 
 **Requires Indico 3.3.13 or later**, unchanged from 0.2.0.

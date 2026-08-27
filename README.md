@@ -227,13 +227,28 @@ then misses and falls back silently to English — with the catalog loaded and
 visible in `window.REACT_TRANSLATIONS.blockschedule`, and no error anywhere.
 
 ```bash
-# from an Indico checkout, with the plugin installed
-indico i18n extract plugin --python  /path/to/indico-blockschedule
-indico i18n extract plugin --react   /path/to/indico-blockschedule
-indico i18n update  plugin --python  --locale ja_JP /path/to/indico-blockschedule
-indico i18n compile plugin --python  /path/to/indico-blockschedule
-indico i18n compile plugin --react   /path/to/indico-blockschedule
+plugin=/path/to/indico-blockschedule
+indico i18n extract plugin --python $plugin
+indico i18n extract plugin --react  $plugin
+indico i18n update  plugin --python --locale ja_JP $plugin
+indico i18n compile plugin --python $plugin
+
+# The React half, from an Indico *checkout* (see below for why):
+for po in $plugin/indico_blockschedule/translations/*/LC_MESSAGES/messages-react.po; do
+  npx react-jsx-i18n compile "$po" > "${po%.po}.json"
+done
 ```
+
+**`indico i18n compile plugin --react` only works if Indico is installed
+editable**, and will otherwise appear to succeed while doing nothing. It chdirs
+to a directory it derives from the installed `indico` package and runs
+`npx react-jsx-i18n` there — which finds nothing when that is site-packages, and
+the command catches the resulting error and exits 0 having written no catalogue.
+The same is true of `--react` extraction. This is the i18n version of the note
+above about `build-assets.py`: the tooling lives in the Indico repo, not in the
+`indico` package, so installing Indico is not enough — the repo has to be
+checked out, and these run from it. That is what the release workflow does.
+`--python` has no such dependency and works either way.
 
 `babel.cfg` and `babel-js.cfg` live in this repo rather than being inherited:
 Indico's extractor falls back to `../babel.cfg`, which is the layout of the

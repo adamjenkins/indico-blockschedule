@@ -96,12 +96,39 @@ jobs:
       # `pyproject.toml` lists the compiled catalogs as build artifacts, which
       # means it picks them up *from disk* -- nothing in the wheel build compiles
       # them. Without this step the wheel ships .po sources and no .mo, and the
-      # plugin is silently English for everyone. Run from the Indico checkout
-      # because the React half shells out to its `react-jsx-i18n`.
+      # plugin is silently English for everyone.
+      #
+      # The React half deliberately does NOT go through `indico i18n compile
+      # plugin --react`. That command chdirs to `INDICO_DIR`, which it derives
+      # from the *installed* `indico` package -- site-packages here, since CI
+      # installs Indico from git rather than editable. There is no `node_modules`
+      # there, so `npx react-jsx-i18n` fails, and the command catches the error
+      # and exits 0 having written nothing. Same trap as the assets above:
+      # installing Indico is not enough, the repo has to be checked out. So the
+      # compile is run directly from that checkout, which is where `npm ci` ran.
       - name: Compile translations
         run: |
           indico i18n compile plugin --python "$GITHUB_WORKSPACE"
-          indico i18n compile plugin --react "$GITHUB_WORKSPACE"
+        working-directory: indico-src
+
+      - name: Compile React translations
+        run: |
+          shopt -s nullglob
+          found=0
+          for po in "$GITHUB_WORKSPACE"/indico_blockschedule/translations/*/LC_MESSAGES/messages-react.po; do
+            found=1
+            out="${po%.po}.json"
+            echo "compiling $po"
+            # Via a temporary file: a redirect would leave a truncated .json
+            # behind on failure, which the guard below would count as success.
+            npx react-jsx-i18n compile "$po" > "$out.tmp"
+            python -c "import json,sys; json.load(open(sys.argv[1]))" "$out.tmp"
+            mv "$out.tmp" "$out"
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "::error::no messages-react.po found - nothing to compile"
+            exit 1
+          fi
         working-directory: indico-src
 
       - name: Build the wheel
