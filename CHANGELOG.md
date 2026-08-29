@@ -2,6 +2,24 @@
 
 All notable changes to the Block Schedule plugin are documented here.
 
+## Unreleased
+
+### Added — a manager's manual
+- **`docs/`, a user manual for conference managers**, in English and Japanese:
+  fifteen chapters and a glossary, as Markdown and as a per-language PDF for
+  reading offline. Written for the people who build an event's programme, not
+  for site administrators or attendees; installation stays in `README.md`.
+- **Screenshots of the real interface in both languages**, taken from a running
+  site with a demonstration conference furnished for the purpose.
+- **`docs/build-pdf.py`**, which compiles a language's chapters into one PDF
+  through Chromium, so the `@page` and `break-inside` rules the layout needs are
+  honoured. `docs/assets/manual.css` is the print stylesheet.
+- **A full English/Japanese glossary** built from the plugin's own translation
+  catalogues, so the manual and the interface cannot drift apart. Every pair in
+  it that exists as a catalogue entry was checked against the catalogue
+  character for character; the handful that do not are noted with the longer
+  string each was taken from.
+
 ## [0.3.1] — 2026-08-27
 
 Identical to 0.3.0 for anyone installing the published wheel — 0.3.0's release

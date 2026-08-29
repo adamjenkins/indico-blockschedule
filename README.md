@@ -107,6 +107,22 @@ a replacement for it — both stay usable, and scheduling writes into
 Indico's real `TimetableEntry` data, so the API, exports, and the core
 timetable stay in sync with what's shown here.
 
+## Manual
+
+A manual for **conference managers** — the people who build and publish an
+event's programme — lives in [`docs/`](docs/), in English and Japanese, as
+Markdown and as a PDF for reading offline:
+
+| | |
+|---|---|
+| English | [`docs/en/`](docs/en/00-index.md) · [PDF](docs/BlockSchedule-Manager-Manual-en.pdf) |
+| 日本語 | [`docs/ja/`](docs/ja/00-index.md) · [PDF](docs/BlockSchedule-Manager-Manual-ja.pdf) |
+
+Fifteen chapters and a glossary, screenshotted from a running site in both
+languages. It covers using the plugin, not installing it — the installation
+steps below stay the reference for that. Rebuild the PDFs after editing a
+chapter with `python3 docs/build-pdf.py`.
+
 ## Installation
 
 **Requires Indico 3.3.13 or later.** Contribution favouriting is built on
