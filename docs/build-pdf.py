@@ -5,6 +5,7 @@
 # The Block Schedule plugin is free software; you can redistribute
 # it and/or modify it under the terms of the MIT License;
 # see the LICENSE file for more details.
+
 """Compile a language's Markdown chapters into one offline PDF.
 
     python3 docs/build-pdf.py            # both languages
