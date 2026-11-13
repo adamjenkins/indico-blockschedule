@@ -2,10 +2,11 @@
 
 All notable changes to the Block Schedule plugin are documented here.
 
-## Unreleased
+## [0.4.0] — 2026-11-13
 
-**Requires Indico 3.3.14 or later.** Sites on Indico 3.3.13 should use the new
-`release/indico-3.3.13` branch.
+**Requires Indico 3.3.14 or later** — up from 3.3.13. Sites on Indico 3.3.13
+should use the new `release/indico-3.3.13` branch, which carries 0.3.1 and the
+manual below; sites on 3.3.12 keep `release/indico-3.3.12`.
 
 ### Fixed — building against Indico 3.3.14
 - **The favourites star builds again on Indico 3.3.14.** Core split the
