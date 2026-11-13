@@ -17,6 +17,12 @@ All notable changes to the Block Schedule plugin are documented here.
   blocks at all. The URL itself did not change, only its name.
 - The dependency is pinned to `indico>=3.3.14`, and CI and the release
   workflow now build against `v3.3.14`.
+- **The favourites star can be clicked on short blocks.** On a one-slot block
+  the start–end time label in the bottom-right corner reached up over the star
+  in the top-right and, being later in the page, took the click — so clicking
+  the star opened the contribution instead of starring it, and the label hid
+  most of the star. The label now sits clear of the star's column, and the
+  star is stacked above it.
 
 ### Added — a manager's manual
 - **`docs/`, a user manual for conference managers**, in English and Japanese:

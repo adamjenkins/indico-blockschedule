@@ -13,6 +13,9 @@
   cursor: pointer;
   color: #aaa;
   font-size: 1em;
+  // Above the block's time-range label: on a one-slot block the two corners
+  // meet, and the label (later in the DOM) would otherwise take the click.
+  z-index: 1;
 
   &:hover {
     color: #f0ad4e;

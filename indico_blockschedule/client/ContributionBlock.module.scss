@@ -87,7 +87,11 @@
 .time-range {
   position: absolute;
   bottom: 2px;
-  right: 4px;
+  // Clear of the favourites star's column (the block's 1.4em right padding;
+  // 2em here because this label is set at 0.7em): on a one-slot block the star
+  // and this label share the same few pixels of height, and the label must
+  // neither hide the star nor be hidden by it.
+  right: 2em;
   padding: 0 0.3em;
   background-color: rgb(255 255 255 / 80%);
   border-radius: 2px;
