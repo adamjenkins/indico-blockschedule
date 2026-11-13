@@ -14,7 +14,7 @@ env:
   # Assets are compiled against core's client code and URL map, so a wheel is
   # only valid for the Indico version it was built against. Keep this in step
   # with ci.yml on this branch.
-  INDICO_VERSION: 'v3.3.13'
+  INDICO_VERSION: 'v3.3.14'
 
 on:
   push:

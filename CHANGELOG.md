@@ -4,6 +4,20 @@ All notable changes to the Block Schedule plugin are documented here.
 
 ## Unreleased
 
+**Requires Indico 3.3.14 or later.** Sites on Indico 3.3.13 should use the new
+`release/indico-3.3.13` branch.
+
+### Fixed — building against Indico 3.3.14
+- **The favourites star builds again on Indico 3.3.14.** Core split the
+  favourites API endpoint into `favorite_contribution_list_api` and
+  `favorite_contribution_api` (indico/indico#7740), so the frontend's import of
+  the old name, `favorite_contributions_api`, no longer resolved. Webpack still
+  emitted bundles, but with the star's module replaced by one that throws on
+  load, which took the whole grid down with it: the schedule pages showed no
+  blocks at all. The URL itself did not change, only its name.
+- The dependency is pinned to `indico>=3.3.14`, and CI and the release
+  workflow now build against `v3.3.14`.
+
 ### Added — a manager's manual
 - **`docs/`, a user manual for conference managers**, in English and Japanese:
   fifteen chapters and a glossary, as Markdown and as a per-language PDF for

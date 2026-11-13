@@ -5,7 +5,7 @@
 // it and/or modify it under the terms of the MIT License;
 // see the LICENSE file for more details.
 
-import favoriteContributionURL from 'indico-url:contributions.favorite_contributions_api';
+import favoriteContributionURL from 'indico-url:contributions.favorite_contribution_api';
 
 import {indicoAxios, handleAxiosError} from 'indico/utils/axios';
 import React, {useState} from 'react';
