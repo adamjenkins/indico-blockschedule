@@ -2,6 +2,15 @@
 
 All notable changes to the Block Schedule plugin are documented here.
 
+## Unreleased
+
+### Changed
+- **The favourites star is meant to print, and the stylesheet now says so.** A
+  print rule hid it, but Semantic UI's more specific `i.icon` rule always
+  overrode that, so printed schedules have always shown the stars. The dead rule
+  is gone, replacing it with a note that the star prints on purpose so that it
+  isn't "fixed" later. Nothing changes on screen or on paper.
+
 ## [0.4.0] — 2026-11-13
 
 **Requires Indico 3.3.14 or later** — up from 3.3.13. Sites on Indico 3.3.13

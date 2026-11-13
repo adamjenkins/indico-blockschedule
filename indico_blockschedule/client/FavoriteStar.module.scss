@@ -25,7 +25,5 @@
     color: #f0ad4e;
   }
 
-  @media print {
-    display: none;
-  }
+  // Printed on purpose: a printed schedule keeps the viewer's favourites marked.
 }
