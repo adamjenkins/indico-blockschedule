@@ -125,12 +125,11 @@ chapter with `python3 docs/build-pdf.py`.
 
 ## Installation
 
-**Requires Indico 3.3.13 or later.** Contribution favouriting is built on
-`User.favorite_contributions`, which core added in 3.3.13, and the dependency
-is pinned accordingly — so installing this on an older Indico fails at install
-time rather than halfway through an asset build. Sites still on Indico 3.3.12
-want the `release/indico-3.3.12` branch, which is this feature set minus
-favouriting.
+**This is the `release/indico-3.3.13` branch, for sites on Indico 3.3.13.**
+Indico 3.3.14 renamed the favourites API endpoint the plugin's frontend is
+built against, so building this branch on 3.3.14 or later fails; those sites
+want `main`. Sites still on Indico 3.3.12 want the `release/indico-3.3.12`
+branch, which is this feature set minus favouriting.
 
 This plugin isn't published to PyPI yet, so it's installed from a clone of
 this repository. These steps assume Indico itself is already installed

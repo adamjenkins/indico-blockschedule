@@ -4,15 +4,16 @@ env:
   TZ: Europe/Zurich
   PYTHON_VERSION: '3.12.11'
   NODE_VERSION: '22.x'
-  # Pinned to the Indico release this branch targets, not master: the plugin
-  # needs contribution favouriting, which core added in 3.3.13, and a pinned
-  # tag keeps a CI run reproducible instead of failing on unrelated core churn.
+  # This is the Indico 3.3.13 compatibility branch. Indico 3.3.14 renamed the
+  # favourites API endpoint the plugin imports, so this branch must build and
+  # test against 3.3.13 itself -- main targets 3.3.14 and later.
   INDICO_VERSION: 'v3.3.13'
 
 on:
   push:
     branches:
       - main
+      - 'release/**'
   pull_request:
     branches:
       - main

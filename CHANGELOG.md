@@ -4,6 +4,12 @@ All notable changes to the Block Schedule plugin are documented here.
 
 ## Unreleased
 
+### Changed — this branch is now for Indico 3.3.13
+- **`release/indico-3.3.13` carries the plugin for sites on Indico 3.3.13.**
+  Indico 3.3.14 renamed the favourites API endpoint the frontend is built
+  against, so `main` moved on to 3.3.14; this branch keeps building against
+  3.3.13, and CI now runs on `release/**` branches as well as `main`.
+
 ### Added — a manager's manual
 - **`docs/`, a user manual for conference managers**, in English and Japanese:
   fifteen chapters and a glossary, as Markdown and as a per-language PDF for
